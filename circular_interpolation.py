@@ -10,9 +10,10 @@ from scipy.spatial import cKDTree
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import psycopg2
+from datetime import datetime
 
 
-accuracy = 10
+accuracy = 100
 lat_min, lat_max = -90, 90
 lon_min, lon_max = -180, 180
 apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
@@ -53,6 +54,22 @@ def save_to_db(data):
     finally:
         cursor.close()
         conn.close()
+
+def save_grid_data_with_timestamp(data):
+    timestamp = datetime.now().isoformat()  # Current timestamp in ISO 8601 format
+    filename = f"grid_data_{timestamp.replace(':', '-')}.json"  # Safe filename format
+    
+    # Create a dictionary with timestamp and data
+    output_data = {
+        "timestamp": timestamp,
+        "data": data
+    }
+    
+    # Save to a JSON file
+    with open(filename, "w") as file:
+        json.dump(output_data, file)
+    
+    print(f"Grid data saved to {filename}")
 
 def haversine(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
@@ -110,8 +127,8 @@ for i in range(grid_shape[0]):
 
 
 print(len(db_data))
-print(db_data)
 # save_to_db(db_data)
+save_grid_data_with_timestamp(db_data)
 
 # Define a custom colormap based on AQI ranges
 color_list = ["green", "yellow", "orange", "red", "purple", "maroon"]
@@ -151,3 +168,59 @@ ax.scatter(longitudes, latitudes, color="black", label="Station Locations", s=10
 plt.title("Interpolated AQI Heatmap with Circular Influence")
 plt.legend()
 plt.show()
+
+def load_data(data_file):
+    try:
+        # Load the JSON file
+        with open(data_file, "r") as file:
+            saved_data = json.load(file)
+        
+        # Extract the timestamp and data
+        timestamp = saved_data.get("timestamp", "Unknown")
+        grid_data = saved_data.get("data", [])
+
+        if not grid_data:
+            return {"message": "No data found in the JSON file."}
+
+        return {"timestamp": timestamp, "grid_data": grid_data}
+
+    except FileNotFoundError:
+        return {"message": f"File {data_file} not found."}
+    except json.JSONDecodeError:
+        return {"message": "Error decoding JSON file."}
+    except Exception as e:
+        return {"message": f"An error occurred: {str(e)}"}
+
+def get_aqi_for_coordinates(lat, lon, data):
+    timestamp = data['timestamp']
+    grid_data = data['grid_data']
+
+    min_distance = float("inf")
+    closest_aqi = None
+
+    for entry in grid_data:
+        grid_lat, grid_lon, aqi = entry
+        dist = haversine(lat, lon, grid_lat, grid_lon)
+        if dist < min_distance:
+            min_distance = dist
+            closest_aqi = aqi
+
+    if closest_aqi is not None:
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "nearest_aqi": closest_aqi,
+            "timestamp": timestamp
+        }
+    else:
+        return {"message": "No nearby AQI data found."}
+
+
+data_file = "grid_data_2024-11-21T21-10-28.434243.json"
+latitude = 37.983810
+longitude = 23.727539
+
+data = load_data(data_file)
+
+result = get_aqi_for_coordinates(latitude, longitude, data)
+print(result)
