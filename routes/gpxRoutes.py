@@ -182,7 +182,7 @@ def plot_route_with_traffic_and_cars(route_coords, start_coords, end_coords, tra
 # Example Input
 start_coordinates = (38.0456, 23.7230)  # Near Kifisós River, Metamorfosi
 end_coordinates = (37.9842, 23.6825)  # Near Kifisós River, Moschato
-google_maps_api_key = "AIzaSyC43Erm5QrTFeSlobnwQZNufcDdvLtMo3k"  # Replace with your API key
+google_maps_api_key = "YOUR_GOOGLE_MAPS_API_KEY"  # Replace with your API key
 
 # Fetch the route and traffic data
 route, traffic_conditions, distance = fetch_route_and_traffic(start_coordinates, end_coordinates, google_maps_api_key)
