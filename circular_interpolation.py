@@ -13,7 +13,7 @@ import psycopg2
 from datetime import datetime
 
 
-accuracy = 100
+accuracy = 1000
 lat_min, lat_max = -90, 90
 lon_min, lon_max = -180, 180
 apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
@@ -22,6 +22,7 @@ data_file = "data.json"
 earth_radius_km = 6371.0  # Earth's radius in km
 radius_km = 4.0  # Radius of AQI influence
 default_aqi = 5  # Default AQI value
+import uuid
 
 DB_CONFIG = {
     'dbname': 'APARS',
@@ -30,6 +31,44 @@ DB_CONFIG = {
     'host': 'localhost',  # Or your DB host
     'port': 5432
 }
+
+ORION_URL = "http://localhost:1026/v2/entities"
+
+# Function to send data
+def send_data_to_orion(entity_id, timestamp, latitude, longitude, aqi):
+    headers = {
+        "Content-Type": "application/json"
+        # "Fiware-Service": "openiot",
+        # "Fiware-ServicePath": "/"
+    }
+    
+    data = {
+        "id": f"GridStationAQI_{entity_id}",
+        "type": "GridStationAQI",
+        "timestamp": {
+            "type": "DateTime",
+            "value": timestamp
+        },
+        "latitude": {
+            "type": "Float",
+            "value": latitude
+        },
+        "longitude": {
+            "type": "Float",
+            "value": longitude
+        },
+        "aqi": {
+            "type": "Integer",
+            "value": aqi
+        }
+    }
+
+    response = requests.post(ORION_URL, headers=headers, data=json.dumps(data))
+    if response.status_code == 201:
+        print("Data sent successfully!")
+    else:
+        print(f"Failed to send data: {response.status_code} - {response.text}")
+
 
 def connect_db():
     try:
@@ -216,11 +255,16 @@ def get_aqi_for_coordinates(lat, lon, data):
         return {"message": "No nearby AQI data found."}
 
 
-data_file = "grid_data_2024-11-21T21-10-28.434243.json"
+data_file = "grid_data_2024-11-26T19-26-37.687698.json"
 latitude = 37.983810
 longitude = 23.727539
 
 data = load_data(data_file)
+
+timestamp = datetime.now().isoformat()
+# print(data['grid_data'][0:4])
+# for d in data['grid_data'][0:4]:
+#     send_data_to_orion(uuid.uuid4(), timestamp, d[0], d[1], d[2])
 
 result = get_aqi_for_coordinates(latitude, longitude, data)
 print(result)
