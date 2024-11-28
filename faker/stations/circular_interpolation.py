@@ -11,9 +11,11 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import psycopg2
 from datetime import datetime
+import netCDF4 as nc
+import numpy as np
 
 
-accuracy = 1000
+accuracy = 100
 lat_min, lat_max = -90, 90
 lon_min, lon_max = -180, 180
 apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
@@ -33,6 +35,43 @@ DB_CONFIG = {
 }
 
 ORION_URL = "http://localhost:1026/v2/entities"
+
+def convert_list_to_nc(data_list, output_file):
+    """
+    Converts a Python list [(lat, lon, aqi), ...] to a .nc file.
+    
+    Args:
+        data_list (list of tuples): List of (lat, lon, aqi) tuples.
+        output_file (str): Path to the output .nc file.
+    """
+    # Extract lat, lon, and aqi from the list
+    lats, lons, aqis = zip(*data_list)
+    lats = np.array(lats)
+    lons = np.array(lons)
+    aqis = np.array(aqis)
+    
+    # Create NetCDF file
+    with nc.Dataset(output_file, 'w', format='NETCDF4') as ds:
+        # Define dimensions
+        ds.createDimension('point', len(data_list))
+        
+        # Define variables
+        lat_var = ds.createVariable('latitude', 'f4', ('point',))
+        lon_var = ds.createVariable('longitude', 'f4', ('point',))
+        aqi_var = ds.createVariable('aqi', 'f4', ('point',))
+        
+        # Add data to variables
+        lat_var[:] = lats
+        lon_var[:] = lons
+        aqi_var[:] = aqis
+        
+        # Add metadata
+        ds.title = "AQI data from Python list"
+        lat_var.units = 'degrees_north'
+        lon_var.units = 'degrees_east'
+        aqi_var.units = 'µg/m3'
+
+    print(f"File {output_file} created successfully.")
 
 # Function to send data
 def send_data_to_orion(entity_id, timestamp, latitude, longitude, aqi):
@@ -255,11 +294,13 @@ def get_aqi_for_coordinates(lat, lon, data):
         return {"message": "No nearby AQI data found."}
 
 
-data_file = "grid_data_2024-11-26T19-26-37.687698.json"
+data_file = "grid_data_2024-11-27T17-59-48.269679.json"
 latitude = 37.983810
 longitude = 23.727539
 
 data = load_data(data_file)
+
+convert_list_to_nc(data['data'], 'station_aqi.nc')
 
 timestamp = datetime.now().isoformat()
 # print(data['grid_data'][0:4])
