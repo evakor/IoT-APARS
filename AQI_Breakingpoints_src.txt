@@ -1,0 +1,43 @@
+### Report on Air Quality Index (AQI) Parameters and Breakpoints
+
+#### 1. Overview
+This report provides a detailed categorization of air quality for various pollutants, including PM1, PM2.5, PM10, NH3 (ammonia), oxidized gases, reduced gases, CO2 (carbon dioxide), and dust. The AQI parameters are defined with specific breakpoints, reflecting pollutant concentration ranges and their associated health effects.
+
+#### 2. Sources of Data
+The AQI parameters and breakpoints are derived from the following authoritative sources:
+
+1. **Prana Air Blog**  
+   *What is Air Quality Index (AQI) and its Calculation*  
+   [Read more](https://www.pranaair.com/in/blog/what-is-air-quality-index-aqi-and-its-calculation/)  
+
+   This source explains the concept of AQI, its calculation, and general pollutant categories.
+
+2. **U.S. Environmental Protection Agency (EPA)**  
+   *PM National Ambient Air Quality Standards (NAAQS) Air Quality Index Fact Sheet*  
+   [Read more](https://www.epa.gov/system/files/documents/2024-02/pm-naaqs-air-quality-index-fact-sheet.pdf)  
+
+   The EPA document outlines AQI breakpoints and their health implications for particulate matter (PM).
+
+3. **Central Pollution Control Board (CPCB), India**  
+   *About AQI*  
+   [Read more](http://app.cpcbccr.com/ccr_docs/About_AQI.pdf)  
+
+   The CPCB source provides AQI standards specific to India, which are comparable to global AQI systems.
+
+4. **ResearchGate Publication**  
+   *Information Fusion for Computational Assessment of Air Quality and Health Effects*  
+   [Download the document](https://www.researchgate.net/publication/231814203_Information_Fusion_for_Computational_Assessment_of_Air_Quality_and_Health_Effects/link/5a3cdb95aca272dd65e5ec6e/download?_tp=eyJjb250ZXh0Ijp7ImZpcnN0UGFnZSI6Il9kaXJlY3QiLCJwYWdlIjoicHVibGljYXRpb24ifX0=)  
+
+   This paper offers insights into the integration of various air quality indices and their computational models.
+
+#### 3. Parameters and Breakpoints
+The parameters and their corresponding AQI breakpoints were consolidated based on these sources. In cases where specific breakpoints were not defined (e.g., for dust or reduced gases), similar parameters like PM2.5 or oxidized gases were used to approximate the breakpoints.
+
+#### 4. Applicability
+The compiled data can be used for environmental monitoring, public awareness, and policymaking. It is especially useful for projects requiring a detailed understanding of pollutant behavior and their health impacts, such as the development of live AQI monitoring systems.
+
+#### 5. Acknowledgments
+This report was prepared using data from the aforementioned sources to ensure accuracy and relevance.
+
+#### 6. Contact
+For further inquiries or access to the full datasets, please refer to the original sources linked above.

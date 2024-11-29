@@ -26,7 +26,7 @@ Station Schema:
 Satellite Schema:
 
 {
-	"id": f"satellite_{lat}_{lon}",
+	"id": f"satellite_{region}_{parameter}",
 	"type": "satellite",
 	"timestamp": {
 		"type": "DateTime",
