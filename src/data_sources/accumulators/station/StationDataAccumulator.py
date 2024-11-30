@@ -43,42 +43,31 @@ def load_data(data_file):
             return None, f"An error occurred: {str(e)}"
 
 
-def send_data_to_orion(entity_id, timestamp, latitude, longitude, aqi):
+def send_data_to_orion(payload):
+    """Send data to Orion Context Broker."""
     headers = {
         "Content-Type": "application/json"
-        # "Fiware-Service": "openiot",
-        # "Fiware-ServicePath": "/"
     }
-    
-    data = {
-        "id": f"station_{entity_id}",
-        "type": "ground_station",
-        "timestamp": {
-            "type": "DateTime",
-            "value": timestamp
-        },
-        "latitude": {
-            "type": "Float",
-            "value": latitude
-        },
-        "longitude": {
-            "type": "Float",
-            "value": longitude
-        },
-        "aqi": {
-            "type": "Integer",
-            "value": aqi
-        }
-    }
+    try:
+        data = json.loads(payload)
+        entity_id = data["id"]
 
-    response = requests.post(ORION_URL, headers=headers, data=json.dumps(data))
-    if response.status_code == 201:
-        logger.info(f"Data posted successfully! STATION ID: station_{entity_id}")
-    elif response.status_code == 422 and eval(response.text)["description"] == "Already Exists":
-        response = requests.patch(ORION_URL, headers=headers, data=json.dumps(data))
-        logger.info(f"Data updated successfully! STATION ID: station_{entity_id}")
-    else:
-        logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+        url = f"{ORION_URL}/{entity_id}/attrs"
+
+        response = requests.patch(url, headers=headers, json={key: value for key, value in data.items() if key not in ["id", "type"]})
+
+        if response.status_code == 204:
+            logger.info(f"Data updated successfully! CAR ID: {entity_id}")
+        elif response.status_code == 404:  # Entity not found, create it
+            response = requests.post(ORION_URL, headers=headers, json=data)
+            if response.status_code == 201:
+                logger.info(f"Data created successfully! CAR ID: {entity_id}")
+            else:
+                logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
+        else:
+            logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Error while sending data to Orion: {str(e)}")
 
 if __name__=="__main__":
     data_file = "station_aqi_data.json"
@@ -88,10 +77,25 @@ if __name__=="__main__":
     logger.info(message)
 
     for station in data:
-        send_data_to_orion(
-            station["uid"], 
-            station["station"]["time"], 
-            station["lat"], 
-            station["lon"], 
-            station["aqi"]
-        )
+        payload = {
+            "id": f"station_{station["uid"]}",
+            "type": "ground_station",
+            "timestamp": {
+                "type": "DateTime",
+                "value": station["station"]["time"]
+            },
+            "latitude": {
+                "type": "Float",
+                "value": station["lat"]
+            },
+            "longitude": {
+                "type": "Float",
+                "value": station["lon"]
+            },
+            "aqi": {
+                "type": "Integer",
+                "value": station["aqi"]
+            }
+        }
+
+        send_data_to_orion(payload)

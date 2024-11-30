@@ -1,0 +1,31 @@
+services:
+  apars-greece-mqtt-broker:
+      image: eclipse-mosquitto:latest
+      container_name: apars-greece-mqtt-broker
+      ports:
+        - "1883:1883"
+        - "9001:9001"
+      volumes:
+        - mosquitto_data:/mosquitto/data
+      entrypoint: /bin/sh -c
+      command: >
+        "touch /mosquitto/config/pwfile && 
+        mosquitto_passwd -b /mosquitto/config/pwfile user password &&
+        echo 'allow_anonymous false' > /mosquitto/config/mosquitto.conf &&
+        echo 'listener 1883' >> /mosquitto/config/mosquitto.conf &&
+        echo 'listener 9001' >> /mosquitto/config/mosquitto.conf &&
+        echo 'protocol websockets' >> /mosquitto/config/mosquitto.conf &&
+        echo 'persistence true' >> /mosquitto/config/mosquitto.conf &&
+        echo 'persistence_location /mosquitto/data/' >> /mosquitto/config/mosquitto.conf &&
+        echo 'persistence_file mosquitto.db' >> /mosquitto/config/mosquitto.conf &&
+        echo 'password_file /mosquitto/config/pwfile' >> /mosquitto/config/mosquitto.conf &&
+        mosquitto -c /mosquitto/config/mosquitto.conf"
+      networks:
+        - apars-greece-network
+
+volumes:
+  mosquitto_data:
+
+networks:
+  apars-greece-network:
+    external: true

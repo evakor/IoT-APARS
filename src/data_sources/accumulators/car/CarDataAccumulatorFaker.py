@@ -6,8 +6,10 @@ from geopy.distance import geodesic
 import time
 import paho.mqtt.client as mqtt
 from datetime import datetime
+import threading
+import random
 
-BROKER_ADDRESS = "mqqt.address"
+BROKER_ADDRESS = "localhost"
 BROKER_PORT = 1883
 
 
@@ -105,7 +107,6 @@ def generate_routes_with_cars(east, west, north, south, time):
 
     area_size = calculate_area_size(east, west, north, south)
     n_routes = calculate_route_count(area_size, traffic_level)
-    print(n_routes)
     n_routes = 3
     print(f"Generating {n_routes} routes based on traffic level and area size.")
 
@@ -116,19 +117,31 @@ def generate_routes_with_cars(east, west, north, south, time):
             start = generate_random_coordinates(east, west, north, south)
             end = generate_random_coordinates(east, west, north, south)
             distance = calculate_distance(start, end)
-            if 5 <= distance <= 25: # Min max based on the square size
+            if 5 <= distance <= 25:  # Min max based on the square size
                 break
 
         route = generate_route(start, end)
-        pollution_level = generate_pollution_profile()
+        pollution_profile = generate_pollution_profile()
+
+        route_with_pollution = []
+        for point in route["routes"][0]["geometry"]["coordinates"]:
+            route_with_pollution.append({
+                "lat": point[1],  # Latitude
+                "lon": point[0],  # Longitude
+                "oxidised": round(np.random.normal(loc=pollution_profile["oxidised"]["value"], scale=5), 2),
+                "reduced": round(np.random.normal(loc=pollution_profile["reduced"]["value"], scale=5), 2),
+                "pm1": round(np.random.normal(loc=pollution_profile["pm1"]["value"], scale=2), 2),
+                "pm25": round(np.random.normal(loc=pollution_profile["pm25"]["value"], scale=3), 2),
+                "pm10": round(np.random.normal(loc=pollution_profile["pm10"]["value"], scale=4), 2),
+                "nh3": round(np.random.normal(loc=pollution_profile["nh3"]["value"], scale=5), 2)
+            })
 
         car_data.append({
             "car_id": i + 1,
-            "route": route["routes"][0]["geometry"]["coordinates"],
-            "pollution_level": pollution_level
+            "route": route_with_pollution
         })
 
-        print(f"Car {i + 1}: Route generated with pollution level {pollution_level}")
+        print(f"Car {i + 1}: Route generated with pollution data added.")
 
     save_car_data_to_json(car_data)
 
@@ -143,16 +156,15 @@ def publish_to_mqtt(client, topic, payload):
     print(f"Published to {topic}: {json.dumps(payload)}")
 
 
-def post_car_data_to_mqtt(car_data, interval=2):
-    # Create MQTT client
-    client = mqtt.Client()
-    client.connect(BROKER_ADDRESS, BROKER_PORT)
+def post_car_data_to_mqtt(car_data):
+    def post_for_car(car):
+        client = mqtt.Client()
+        client.username_pw_set("user", "password")
+        client.connect(BROKER_ADDRESS, BROKER_PORT)
 
-    for car in car_data:
         car_id = car["car_id"]
         topic = f"car_{car_id}"
         route = car["route"]
-        pollution = car["pollution_level"]
 
         for point in route:
             timestamp = datetime.now().isoformat()
@@ -160,19 +172,31 @@ def post_car_data_to_mqtt(car_data, interval=2):
                 "id": f"car_{car_id}",
                 "type": "car",
                 "timestamp": {"type": "DateTime", "value": timestamp},
-                "latitude": {"type": "Float", "value": float(point[1])},
-                "longitude": {"type": "Float", "value": float(point[0])},
-                "oxidised": {"type": "Float", "value": float(pollution["oxidised"]["value"])},
-                "pm1": {"type": "Float", "value": float(pollution["pm1"]["value"])},
-                "pm25": {"type": "Float", "value": float(pollution["pm25"]["value"])},
-                "pm10": {"type": "Float", "value": float(pollution["pm10"]["value"])},
-                "reduced": {"type": "Float", "value": float(pollution["reduced"]["value"])},
-                "nh3": {"type": "Float", "value": float(pollution["nh3"]["value"])},
+                "latitude": {"type": "Float", "value": point["lat"]},
+                "longitude": {"type": "Float", "value": point["lon"]},
+                "oxidised": {"type": "Float", "value": point["oxidised"]},
+                "pm1": {"type": "Float", "value": point["pm1"]},
+                "pm25": {"type": "Float", "value": point["pm25"]},
+                "pm10": {"type": "Float", "value": point["pm10"]},
+                "reduced": {"type": "Float", "value": point["reduced"]},
+                "nh3": {"type": "Float", "value": point["nh3"]},
             }
             publish_to_mqtt(client, topic, payload)
-            time.sleep(interval)
+            time.sleep(random.uniform(1.8, 2.2))
 
-    client.disconnect()
+        client.disconnect()
+
+    # Create and start a thread for each car
+    threads = []
+    for car in car_data:
+        thread = threading.Thread(target=post_for_car, args=(car,))
+        thread.start()
+        threads.append(thread)
+
+    # Wait for all threads to finish
+    for thread in threads:
+        thread.join()
+
 
 
 if __name__ == "__main__":

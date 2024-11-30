@@ -200,22 +200,30 @@ def json_to_orion_entities(json_data, region="Greece"):
     return entities
 
 def send_data_to_orion(payload):
+    """Send data to Orion Context Broker."""
     headers = {
         "Content-Type": "application/json"
-        # "Fiware-Service": "openiot",
-        # "Fiware-ServicePath": "/"
     }
+    try:
+        data = json.loads(payload)
+        entity_id = data["id"]
 
-    entity_id="temp"
+        url = f"{ORION_URL}/{entity_id}/attrs"
 
-    response = requests.post(ORION_URL, headers=headers, data=payload)
-    if response.status_code == 201:
-        logger.info(f"Data posted successfully! CAR ID: car_{entity_id}")
-    elif response.status_code == 422 and eval(response.text)["description"] == "Already Exists":
-        response = requests.patch(ORION_URL, headers=headers, data=json.dumps(data))
-        logger.info(f"Data updated successfully! CAR ID: car_{entity_id}")
-    else:
-        logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+        response = requests.patch(url, headers=headers, json={key: value for key, value in data.items() if key not in ["id", "type"]})
+
+        if response.status_code == 204:
+            logger.info(f"Data updated successfully! CAR ID: {entity_id}")
+        elif response.status_code == 404:  # Entity not found, create it
+            response = requests.post(ORION_URL, headers=headers, json=data)
+            if response.status_code == 201:
+                logger.info(f"Data created successfully! CAR ID: {entity_id}")
+            else:
+                logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
+        else:
+            logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"Error while sending data to Orion: {str(e)}")
 
 
 if __name__=="__main__":
