@@ -3,71 +3,121 @@ import json
 from collections import Counter
 
 # Replace with your Google Maps API key
-google_maps_api_key = "enter_your_api_key"
+google_maps_api_key = 'AIzaSyC4MVTFv0aWSea92ArNhbpe3m7q16vZgds'
+# AIzaSyC43Erm5QrTFeSlobnwQZNufcDdvLtMo3k
 
-def fetch_route_and_traffic(south, west, north, east, google_maps_api_key):
-    """Fetch route and traffic data for the bounding box using the Google Maps API."""
+import requests
+import json
+
+
+
+def fetch_route_and_traffic(origin_lat, origin_lon, dest_lat, dest_lon, google_maps_api_key):
+    """Fetch route and traffic data for the given origin and destination."""
     base_url = "https://maps.googleapis.com/maps/api/directions/json"
     params = {
-        "origin": f"{south},{west}",
-        "destination": f"{north},{east}",
+        "origin": f"{origin_lat},{origin_lon}",
+        "destination": f"{dest_lat},{dest_lon}",
         "mode": "driving",
-        "departure_time": "now",  # Fetch real-time traffic
+        "departure_time": "now",  # Real-time traffic
         "key": google_maps_api_key
     }
 
     response = requests.get(base_url, params=params)
     response.raise_for_status()
     data = response.json()
-    
+
     if data["status"] != "OK":
+        print(f"API Error: {data['status']} | Response: {data}")
         return None
 
-    route = data["routes"][0]["legs"][0]["steps"]
-    traffic_conditions = []
-    for step in route:
-        if "duration_in_traffic" in step and step["duration_in_traffic"]["value"] > step["duration"]["value"]:
-            traffic_conditions.append("High")
-        elif "duration_in_traffic" in step and step["duration_in_traffic"]["value"] > 1.1 * step["duration"]["value"]:
-            traffic_conditions.append("Medium")
-        else:
-            traffic_conditions.append("Low")
-    
-    return {
-        "traffic_conditions": traffic_conditions,
-        "steps": len(route)
-    }
+    return data
 
+def save_traffic_data_to_json(filename, api_key):
+    """Fetch and save traffic data for specific test routes in Athens."""
+    # Define specific test routes in Athens or other parts of Greece
+    test_routes = [
+        {"origin": "37.9838,23.7275", "destination": "37.9755,23.7348"},  # Athens center
+        {"origin": "38.2304,21.7531", "destination": "38.2466,21.7346"},  # Patras
+        {"origin": "40.6401,22.9444", "destination": "40.6315,22.9603"},  # Thessaloniki
+        {"origin": "37.9838,23.7275", "destination": "37.9847,23.7624"},  # Athens to nearby
+    ]
 
-def save_athens_traffic_to_json(filename, api_key):
-    """Fetch and save traffic data for a grid covering Athens."""
-    # Define a grid over Athens (you might need to adjust these based on the area coverage)
-    west, east = 23.65, 23.85  # Longitude bounds
-    south, north = 37.85, 38.05  # Latitude bounds
-    step = 0.02  # Grid size
+    traffic_data = {}
 
-    athens_traffic_data = {}
+    for i, route in enumerate(test_routes, start=1):
+        origin = route["origin"]
+        destination = route["destination"]
+        print(f"Fetching traffic data for Route {i}: {origin} -> {destination}")
 
-    lat = south
-    while lat < north:
-        lon = west
-        while lon < east:
-            region_id = f"region_{lat}_{lon}"
-            try:
-                data = fetch_route_and_traffic(lat, lon, lat + step, lon + step, api_key)
-                athens_traffic_data[region_id] = {
-                    "coordinates": {"south": lat, "west": lon, "north": lat + step, "east": lon + step},
-                    "traffic_data": data if data else {"error": "Unable to fetch data"}
+        try:
+            data = fetch_route_and_traffic(
+                origin_lat=origin.split(",")[0],
+                origin_lon=origin.split(",")[1],
+                dest_lat=destination.split(",")[0],
+                dest_lon=destination.split(",")[1],
+                google_maps_api_key=api_key,
+            )
+
+            if data:
+                traffic_data[f"route_{i}"] = {
+                    "origin": origin,
+                    "destination": destination,
+                    "route_data": data,
                 }
-            except Exception as e:
-                athens_traffic_data[region_id] = {"error": str(e)}
-            lon += step
-        lat += step
+            else:
+                traffic_data[f"route_{i}"] = {
+                    "origin": origin,
+                    "destination": destination,
+                    "error": "No route or traffic data found",
+                }
+        except Exception as e:
+            traffic_data[f"route_{i}"] = {
+                "origin": origin,
+                "destination": destination,
+                "error": str(e),
+            }
 
+    # Save the data to a JSON file
     with open(filename, 'w') as json_file:
-        json.dump(athens_traffic_data, json_file, indent=4)
+        json.dump(traffic_data, json_file, indent=4)
 
-    print(f"Athens traffic data saved to {filename}")
+    print(f"Traffic data saved to {filename}")
     
+def extract_traffic_data(input_file, output_file):
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+
+    traffic_data = {}
+
+    for route_id, route_info in data.items():
+        origin = route_info.get("origin")
+        destination = route_info.get("destination")
+        route_details = route_info.get("route_data", {}).get("routes", [{}])[0].get("legs", [{}])[0]
+
+        distance = route_details.get("distance", {}).get("text", "N/A")
+        duration = route_details.get("duration", {}).get("text", "N/A")
+        duration_in_traffic = route_details.get("duration_in_traffic", {}).get("text", "N/A")
+
+        traffic_data[route_id] = {
+            "origin": origin,
+            "destination": destination,
+            "traffic": {
+                "distance": distance,
+                "duration_without_traffic": duration,
+                "duration_with_traffic": duration_in_traffic
+            }
+        }
+
+    with open(output_file, 'w') as f:
+        json.dump(traffic_data, f, indent=4)
+
+    print(f"Traffic-only data saved to {output_file}")
+
+
+# Example usage
+
+
 if __name__ == "__main__":
-    save_athens_traffic_to_json("athens_traffic_data.json", google_maps_api_key)
+    # Replace "traffic_data.json" with your desired filename
+    save_traffic_data_to_json("traffic_data.json", google_maps_api_key)
+    extract_traffic_data("traffic_data.json", "traffic_only_data.json")
