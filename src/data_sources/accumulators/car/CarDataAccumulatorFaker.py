@@ -5,7 +5,7 @@ import numpy as np
 from geopy.distance import geodesic
 import time
 import paho.mqtt.client as mqtt
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 import random
 
@@ -168,20 +168,11 @@ def post_car_data_to_mqtt(car_data):
 
         for point in route:
             timestamp = datetime.now().isoformat()
-            payload = {
-                "id": f"car_{car_id}",
-                "type": "car",
-                "timestamp": {"type": "DateTime", "value": timestamp},
-                "latitude": {"type": "Float", "value": point["lat"]},
-                "longitude": {"type": "Float", "value": point["lon"]},
-                "oxidised": {"type": "Float", "value": point["oxidised"]},
-                "pm1": {"type": "Float", "value": point["pm1"]},
-                "pm25": {"type": "Float", "value": point["pm25"]},
-                "pm10": {"type": "Float", "value": point["pm10"]},
-                "reduced": {"type": "Float", "value": point["reduced"]},
-                "nh3": {"type": "Float", "value": point["nh3"]},
-            }
+
+            payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], point["oxidised"], point["pm1"], point["pm25"], point["pm10"], point["reduced"], point["nh3"]]
+            
             publish_to_mqtt(client, topic, payload)
+            
             time.sleep(random.uniform(1.8, 2.2))
 
         client.disconnect()

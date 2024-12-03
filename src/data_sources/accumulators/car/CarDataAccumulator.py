@@ -2,6 +2,8 @@ import paho.mqtt.client as mqtt
 import requests
 import logging
 import json
+from datetime import datetime, timezone
+import ast
 
 # Constants
 BROKER_ADDRESS = "localhost"
@@ -19,7 +21,8 @@ def send_data_to_orion(payload):
         "Content-Type": "application/json"
     }
     try:
-        data = json.loads(payload)
+        data = to_orion_format(payload)#json.loads(payload)
+
         entity_id = data["id"]
 
         url = f"{ORION_URL}/{entity_id}/attrs"
@@ -38,6 +41,24 @@ def send_data_to_orion(payload):
             logger.error(f"Failed to send data: {response.status_code} - {response.text}")
     except Exception as e:
         logger.error(f"Error while sending data to Orion: {str(e)}")
+
+
+def to_orion_format(payload):
+    payload = list(json.loads(payload))
+
+    return {
+        "id": payload[0],
+        "type": "car",
+        "timestamp": {"type": "DateTime", "value": payload[1]},
+        "latitude": {"type": "Float", "value": payload[2]},
+        "longitude": {"type": "Float", "value": payload[3]},
+        "oxidised": {"type": "Float", "value": payload[4]},
+        "pm1": {"type": "Float", "value": payload[5]},
+        "pm25": {"type": "Float", "value": payload[6]},
+        "pm10": {"type": "Float", "value": payload[7]},
+        "reduced": {"type": "Float", "value": payload[8]},
+        "nh3": {"type": "Float", "value": payload[9]},
+    }
 
 
 # MQTT callbacks
