@@ -1,0 +1,30 @@
+
+GUIDE TO UNDERSTAND THE WEBHOOKS LOGIC
+
+
+Purpose of Webhooks in This System
+	Webhooks in this architecture will:
+
+	Notify and Trigger Actions: When data changes in the Context Broker (e.g., new measurements from GPS, stations, or satellites), 	notify other services like the Grafana server, mobile app, or data processing pipelines (e.g., interpolation).
+	Act as Connectors: Facilitate data flow between the Context Broker and external services (InfluxDB, backend systems).
+
+What the Webhooks Should Do
+	Example Webhook Use Cases:
+
+	Data Notifications to InfluxDB
+	When the Context Broker receives new data (e.g., GPS, Station AQI Data), the webhook should process the payload and push it to the 	relevant InfluxDB table (Car Data, Grid Station Data, etc.).
+	Trigger Interpolation Service
+	When a new data point (e.g., Grid Station Data or Satellite AQI Data) is added, the webhook can notify the interpolation service to 	generate derived data points.
+	Real-Time Updates to the UI Dashboard
+	The webhook can notify the Grafana server (or any middleware) to update the dashboard in real-time.
+	Alerts or Backend Triggers
+	The webhook can notify the backend service of significant changes (e.g., high AQI) to trigger alerts to the mobile app.
+
+
+How the Webhooks Integrate
+	Notification Flow:
+		Context Broker sends notifications (via HTTP POST) to orion/webhooks.py when a subscribed entity changes (e.g., new GPS 		data, updated AQI).
+	Processing:
+		The webhook processes the payload (e.g., formats it for InfluxDB, triggers the interpolation service, or notifies the 			backend).
+	Update Backend and Frontend:
+		The processed data is either stored in InfluxDB (visualized via Grafana) or sent directly to the backend for app 			notifications.
