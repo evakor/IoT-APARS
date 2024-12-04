@@ -15,7 +15,7 @@ import netCDF4 as nc
 import numpy as np
 
 
-accuracy = 100
+accuracy = 300
 lat_min, lat_max = -90, 90
 lon_min, lon_max = -180, 180
 apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
