@@ -1,8 +1,17 @@
 from shiny import App, ui, render, reactive, Inputs, Outputs
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 from netCDF4 import Dataset
 import numpy as np
 import cartopy.crs as ccrs
+from matplotlib.widgets import RectangleSelector
+
+# Define the colormap
+colors = ["green", "yellow", "orange", "red", "maroon", "purple"]
+values = [0, 50, 100, 150, 200, 300, 500]
+cmap = LinearSegmentedColormap.from_list(
+    "smooth_aqi", list(zip(np.linspace(0, 1, len(colors)), colors))
+)
 
 # Define the UI
 app_ui = ui.page_fluid(
@@ -44,8 +53,8 @@ def server(input: Inputs, output: Outputs, session):
         if dataset is None:
             return
 
-        # Find latitude, longitude, and data variable
         try:
+            # Find latitude, longitude, and data variable
             lat_name, lon_name = find_lat_lon(dataset)
             if not lat_name or not lon_name:
                 raise ValueError("Latitude or longitude variables not found.")
@@ -63,7 +72,7 @@ def server(input: Inputs, output: Outputs, session):
                 data_var_name = list(dataset.variables.keys())[-1]  # Fall back to the last variable
 
             data = dataset.variables[data_var_name][:]
-            
+
             # Handle dimensions (e.g., time, level) by selecting the first index for simplicity
             if data.ndim == 4:  # Time, level, lat, lon
                 data = data[0, 0, :, :]  # Select the first time and level
@@ -78,8 +87,33 @@ def server(input: Inputs, output: Outputs, session):
             ax.set_global()
 
             lon, lat = np.meshgrid(lon, lat)
-            img = ax.contourf(lon, lat, data, 60, transform=ccrs.PlateCarree(), cmap="viridis")
+            img = ax.contourf(
+                lon, lat, data, levels=values, transform=ccrs.PlateCarree(), cmap=cmap
+            )
             plt.colorbar(img, ax=ax, orientation="horizontal", pad=0.05, label=data_var_name)
+
+            # Add interactive zoom and drag functionality
+            def onselect(eclick, erelease):
+                extent = [
+                    eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata
+                ]
+                ax.set_extent(extent, crs=ccrs.PlateCarree())
+                fig.canvas.draw()
+
+            selector = RectangleSelector(
+                ax, onselect, drawtype='box', useblit=True,
+                button=[1],  # Left mouse button
+                minspanx=5, minspany=5,
+                spancoords='pixels', interactive=True
+            )
+
+            plt.connect('key_press_event', lambda event: reset_zoom(event, ax, fig))
+
+            def reset_zoom(event, ax, fig):
+                if event.key == 'r':
+                    ax.set_global()
+                    ax.coastlines()
+                    fig.canvas.draw()
 
             return fig
 
