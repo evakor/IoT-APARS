@@ -46,19 +46,69 @@ def send_data_to_orion(payload):
 def to_orion_format(payload):
     payload = list(json.loads(payload))
 
-    return {
-        "id": payload[0],
-        "type": "car",
-        "timestamp": {"type": "DateTime", "value": payload[1]},
-        "latitude": {"type": "Float", "value": payload[2]},
-        "longitude": {"type": "Float", "value": payload[3]},
-        "oxidised": {"type": "Float", "value": payload[4]},
-        "pm1": {"type": "Float", "value": payload[5]},
-        "pm25": {"type": "Float", "value": payload[6]},
-        "pm10": {"type": "Float", "value": payload[7]},
-        "reduced": {"type": "Float", "value": payload[8]},
-        "nh3": {"type": "Float", "value": payload[9]},
-    }
+    # return {
+    #     "id": payload[0],
+    #     "type": "car",
+    #     "timestamp": {"type": "DateTime", "value": payload[1]},
+    #     "latitude": {"type": "Float", "value": payload[2]},
+    #     "longitude": {"type": "Float", "value": payload[3]},
+    #     "oxidised": {"type": "Float", "value": payload[4]},
+    #     "pm1": {"type": "Float", "value": payload[5]},
+    #     "pm25": {"type": "Float", "value": payload[6]},
+    #     "pm10": {"type": "Float", "value": payload[7]},
+    #     "reduced": {"type": "Float", "value": payload[8]},
+    #     "nh3": {"type": "Float", "value": payload[9]},
+    # }
+    return {  
+            "id": payload[0],  
+            "type": "CarAirQualityObserved",  
+            "dateObserved": {  
+                "type": "DateTime",  
+                "value": payload[1]  
+            },   
+            "co": {  
+                "type": "Float",  
+                "value": 10.0 
+            }, 
+            "co2": {  
+                "type": "Float",  
+                "value": 10.0
+            },  
+            "pm1": {  
+                "type": "Float",  
+                "value": payload[5]
+            },  
+            "pm25": {  
+                "type": "Float",  
+                "value": payload[6]
+            },  
+            "pm10": {  
+                "type": "Float",  
+                "value": payload[7]
+            },  
+            "oxidised": {  
+                "type": "Float",  
+                "value": payload[4]
+            },  
+            "reduced": {  
+                "type": "Float",  
+                "value": payload[8]
+            },  
+            "nh3": {  
+                "type": "Float",  
+                "value": payload[9]
+            },  
+            "location": {  
+                "type": "geo:json",  
+                "value": {  
+                "type": "Point",  
+                "coordinates": [  
+                    payload[2],  
+                    payload[3]  
+                ]  
+                }  
+            }
+            }  
 
 
 # MQTT callbacks

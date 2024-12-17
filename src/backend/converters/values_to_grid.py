@@ -5,9 +5,16 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from matplotlib.colors import LinearSegmentedColormap
 import netCDF4 as nc
+import os
+from dotenv import load_dotenv
 
-west, east, south, north = 19.3646, 29.6425, 34.8021, 41.7489
-resolution = 0.005  # Approx. 100m resolution in degrees
+load_dotenv()
+
+west = float(os.getenv('WEST'))
+east = float(os.getenv('EAST'))
+south = float(os.getenv('SOUTH'))
+north = float(os.getenv('NORTH'))
+resolution = 0.001  # Approx. 100m resolution in degrees
 base_value = 10
 
 # Create a grid of latitude and longitude
@@ -28,7 +35,7 @@ stations = [
     if south <= station["lat"] <= north and west <= station["lon"] <= east
 ]
 
-influence_radius_km = 0.1  # 200m in degrees
+influence_radius_km = 0.01  # 200m in degrees
 
 # Helper function to calculate radial decay
 def radial_decay(distance, max_distance):
@@ -101,6 +108,16 @@ def save_to_nc(file_name, lats, lons, grid):
 # Save the grid to a .nc file
 save_to_nc("aqi_heatmap.nc", lats, lons, grid)
 
+from matplotlib.colors import BoundaryNorm
+
+# Define the color boundaries and colors
+colors = ["green", "yellow", "orange", "red", "maroon", "purple"]
+values = [0, 50, 100, 150, 200, 300, 500]  # AQI thresholds
+
+# Create a colormap and normalization for the given boundaries
+cmap = LinearSegmentedColormap.from_list("aqi_boundaries", colors, N=len(colors))
+norm = BoundaryNorm(values, ncolors=cmap.N, clip=True)
+
 # Plot the interpolated map on top of the region map
 plt.figure(figsize=(12, 10))
 ax = plt.axes(projection=ccrs.PlateCarree())
@@ -113,22 +130,24 @@ ax.add_feature(cfeature.BORDERS, linestyle=':')
 ax.add_feature(cfeature.LAKES, edgecolor='black')
 ax.add_feature(cfeature.RIVERS)
 
-# Plot the heatmap
-heatmap = ax.contourf(lon_grid, lat_grid, grid, cmap=cmap, levels=100, transform=ccrs.PlateCarree())
+# Plot the heatmap with sharp transitions at AQI thresholds
+heatmap = ax.contourf(lon_grid, lat_grid, grid, levels=values, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
 
 # Add color bar
 cbar = plt.colorbar(heatmap, ax=ax, orientation="vertical", shrink=0.7, pad=0.05)
 cbar.set_label("AQI Value")
+cbar.set_ticks(values)
+cbar.set_ticklabels(values)
 
 # Add station markers
 for station in stations:
     plt.plot(
         station["lon"], station["lat"],
-        marker="x", color="black", markersize=8, label=station["value"] if "value" not in plt.gca().get_legend_handles_labels()[1] else ""
+        marker="x", color="black", markersize=8,
+        label=station["value"] if "value" not in plt.gca().get_legend_handles_labels()[1] else ""
     )
 
-plt.title("Interpolated AQI Map Over Region")
+plt.title("Interpolated AQI Map Over Region with AQI Thresholds")
 plt.legend(title="Stations", loc="lower right")
 plt.show()
-
 

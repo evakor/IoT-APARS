@@ -6,7 +6,7 @@ import requests
 context_broker_url = "http://localhost:1026/v2/subscriptions"
 
 # Webhook URL
-webhook_url = "http://<webhook_server_ip>:5000/webhook"
+webhook_url = "http://localhost:5000/car-data-upload"
 
 # Create a subscription for GPS data
 subscription = {

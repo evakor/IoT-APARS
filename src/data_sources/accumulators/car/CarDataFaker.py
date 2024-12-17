@@ -8,6 +8,10 @@ import paho.mqtt.client as mqtt
 from datetime import datetime, timezone
 import threading
 import random
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BROKER_ADDRESS = "localhost"
 BROKER_PORT = 1883
@@ -117,7 +121,7 @@ def generate_routes_with_cars(east, west, north, south, time):
             start = generate_random_coordinates(east, west, north, south)
             end = generate_random_coordinates(east, west, north, south)
             distance = calculate_distance(start, end)
-            if 5 <= distance <= 25:  # Min max based on the square size
+            if 5 <= distance <= 20:  # Min max based on the square size
                 break
 
         route = generate_route(start, end)
@@ -192,10 +196,10 @@ def post_car_data_to_mqtt(car_data):
 
 if __name__ == "__main__":
     faker_input = {
-        "east": 23.8,
-        "west": 23.7,
-        "north": 37.9,
-        "south": 37.8,
+        "east": float(os.getenv('WEST')),
+        "west": float(os.getenv('EAST')),
+        "north": float(os.getenv('SOUTH')),
+        "south": float(os.getenv('NORTH')),
         "time": "08:00"
     }
 

@@ -10,6 +10,10 @@ import requests
 import logging
 import logging.config
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.config.fileConfig('../logging.conf')
 logger = logging.getLogger('SATELLITE_ACCUMULATOR')
@@ -171,7 +175,8 @@ def netcdf_to_json_filtered(nc_file, json_file, west, east, south, north):
 
 def json_to_orion_entities(json_data, region="Greece"):
     """
-    Converts JSON payload into Orion Context Broker-compatible entities.
+    Converts JSON payload into Orion Context Broker-compatible entities,
+    including latitude, longitude, and value dynamically.
 
     Args:
         json_data (dict): The JSON data to be converted.
@@ -181,23 +186,45 @@ def json_to_orion_entities(json_data, region="Greece"):
         list: A list of entities ready to be posted to Orion Context Broker.
     """
     entities = []
-    for param, param_data in json_data.get("variables", {}).items():
-        # Skip coordinates and dimensions
-        if param in ['longitude', 'latitude', 'time', 'level']:
-            continue
-        
-        entity = {
-            "id": f"satellite_{region}_{param}",
-            "type": "satellite",
-            "region": {"type": "Text", "value": region},
-            "parameter": {"type": "Text", "value": param},
-            "attributes": {"type": "StructuredValue", "value": param_data.get("attributes", {})},
-            "dimensions": {"type": "StructuredValue", "value": param_data.get("dimensions", [])},
-            "data": {"type": "StructuredValue", "value": param_data.get("data", [])}
-        }
-        entities.append(entity)
+    latitudes = json_data["variables"].get("latitude", {}).get("data", [])
+    longitudes = json_data["variables"].get("longitude", {}).get("data", [])
     
+    # Loop through all parameters and their data
+    for param, param_data in json_data.get("variables", {}).items():
+        if param in ['longitude', 'latitude', 'time', 'level']:
+            continue  # Skip coordinates
+        
+        data_values = param_data.get("data", [])
+
+        timestamp = datetime.utcnow().isoformat()
+        
+        # Create entities dynamically for each latitude/longitude pair and value
+        for i, lat in enumerate(latitudes):
+            for j, lon in enumerate(longitudes):
+                value = data_values[i][j] if i < len(data_values) and j < len(data_values[i]) else None
+                if value is not None:
+                    entity = {
+                        "id": f"satellite_{param}",
+                        "type": "SatelliteAirQualityObserved",
+                        "dateObserved": {
+                            "type": "DateTime",
+                            "value": timestamp
+                        },
+                        f"{param}": {
+                            "type": "Float",
+                            "value": value
+                        },
+                        "location": {
+                            "type": "geo:json",
+                            "value": {
+                                "type": "Point",
+                                "coordinates": [lon, lat]
+                            }
+                        }
+                    }
+                    entities.append(entity)
     return entities
+
 
 def send_data_to_orion(payload):
     """Send data to Orion Context Broker."""
@@ -232,15 +259,11 @@ if __name__=="__main__":
     client = cdsapi.Client()
     client.retrieve(dataset, request, filename).download()
 
-
-
     ## Step 2: Unzip and split file
 
     unzip_file(filename, "satellite_accumulated")
 
     split_nc_by_parameter(f"satellite_accumulated/{filename}", "satellite_by_parameter")
-
-
 
     ## Step 3: nc->json
 
@@ -250,13 +273,11 @@ if __name__=="__main__":
         netcdf_to_json_filtered(
             file, 
             f"satellite_by_parameter/{file.split(".")[0]}.json", 
-            west=19.3646,
-            east=29.6425, 
-            south=34.8021,
-            north=41.7489
+            west = float(os.getenv('WEST')),
+            east = float(os.getenv('EAST')),
+            south = float(os.getenv('SOUTH')),
+            north = float(os.getenv('NORTH'))
     )
-        
-    
 
     ## Step 3: post to orion
     

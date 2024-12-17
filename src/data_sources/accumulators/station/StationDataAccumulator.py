@@ -7,6 +7,10 @@ import json
 import requests
 import logging
 import logging.config
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.config.fileConfig('../logging.conf')
 logger = logging.getLogger('STATION_DATA')
@@ -18,6 +22,10 @@ lon_min, lon_max = 19.3646, 29.6425
 # World
 lat_min, lat_max = -90, 90
 lon_min, lon_max = -180, 180
+
+# Patras
+lat_min, lat_max = float(os.getenv('SOUTH')), float(os.getenv('NORTH'))
+lon_min, lon_max = float(os.getenv('WEST')), float(os.getenv('EAST'))
 
 apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
 url = f"https://api.waqi.info/map/bounds/?token={apiToken}&latlng={lat_min},{lon_min},{lat_max},{lon_max}"
@@ -77,25 +85,28 @@ if __name__=="__main__":
     logger.info(message)
 
     for station in data:
-        payload = {
-            "id": f"station_{station["uid"]}",
-            "type": "ground_station",
-            "timestamp": {
-                "type": "DateTime",
+        payload = {  
+            "id": f"station_{station["uid"]}",  
+            "type": "StationAirQualityObserved",  
+            "dateObserved": {  
+                "type": "DateTime",  
                 "value": station["station"]["time"]
-            },
-            "latitude": {
-                "type": "Float",
-                "value": station["lat"]
-            },
-            "longitude": {
-                "type": "Float",
-                "value": station["lon"]
-            },
-            "aqi": {
-                "type": "Integer",
+            },   
+            "aqi": {  
+                "type": "Float",  
                 "value": station["aqi"]
+            }, 
+            "location": {  
+                "type": "geo:json",  
+                "value": {  
+                "type": "Point",  
+                "coordinates": [  
+                    station["lat"],
+                    station["lon"]
+                ]  
+                }  
             }
         }
+
 
         send_data_to_orion(payload)
