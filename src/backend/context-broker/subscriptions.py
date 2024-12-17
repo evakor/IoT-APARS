@@ -4,7 +4,7 @@ import json
 # Orion Context Broker URL
 ORION_URL = "http://localhost:1026/v2/subscriptions"
 
-# Subscription payload
+# Subscription payload test
 station_data_subscription_payload = {
     "description": "Subscription for ground_station updates",
     "subject": {
