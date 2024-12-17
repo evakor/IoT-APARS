@@ -6,6 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+#theloume na anoixei ena mqtt apo cb se webhook kai meta na ta stelnei influx
 
 # InfluxDB 2.0 settings
 token = '3C4tpppV6mLJ85ArlFx4Cazj55KnM2xWJcuTnCCZLfsSalCym88_C1tSERzuLUzZ6IWth9Y4_x_tx_FWiq8jNA=='

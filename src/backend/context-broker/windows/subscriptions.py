@@ -5,6 +5,7 @@ import json
 ORION_URL = "http://localhost:1026/v2/subscriptions"
 WEBHOOK_SERVER_URL = "http://localhost:5001"
 
+#theloume na anoixei ena mqtt apo cb se webhook kai meta na ta stelnei influx
 
 # Subscription payload test
 station_data_subscription_payload = {
