@@ -86,7 +86,7 @@ if __name__=="__main__":
 
     for station in data:
         payload = {  
-            "id": f"station_{station["uid"]}",  
+            "id": f"station_{station['uid']}",  
             "type": "StationAirQualityObserved",  
             "dateObserved": {  
                 "type": "DateTime",  

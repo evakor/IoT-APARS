@@ -272,7 +272,7 @@ if __name__=="__main__":
     for file in nc_files:
         netcdf_to_json_filtered(
             file, 
-            f"satellite_by_parameter/{file.split(".")[0]}.json", 
+            f"satellite_by_parameter/{file.split('.')[0]}.json", 
             west = float(os.getenv('WEST')),
             east = float(os.getenv('EAST')),
             south = float(os.getenv('SOUTH')),
