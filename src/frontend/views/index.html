@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - APARS</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+    <!-- Navbar template-->
+   <div id="navbar"></div>
+
+    <!-- JavaScript to load navbar -->
+   <script src="../js/menu.js"></script>
+    <script>
+        // Load navbar dynamically
+        fetch('navbar.html')
+            .then(response => response.text())
+            .then(data => document.getElementById('navbar').innerHTML = data);
+    </script>
+
+
+    <!-- Map Section -->
+    <div class="map-section">
+        <p>Map Placeholder</p>
+    </div>
+
+    <!-- Graph Section -->
+    <div class="graph-container">
+        <!-- Replace src URLs with your Grafana iframe URLs -->
+        <iframe class="graph" src="https://play.grafana.org/d/000000012/grafana-dashboard" title="Graph 1"></iframe>
+        <iframe src="https://labserver.sense-campus.gr:8087/d-solo/be6wucnni3p4wf/new-dashboard?from=1734473705254&to=1734474005254&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo"  width="500" frameborder="0"></iframe>
+    </div>
+
+    
+</body>
+</html>
