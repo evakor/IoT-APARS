@@ -1,18 +1,21 @@
 import paho.mqtt.client as mqtt
 import requests
 import logging
+import logging.config
 import json
 from datetime import datetime, timezone
-import ast
+import os
+from dotenv import load_dotenv
 
-# Constants
-BROKER_ADDRESS = "localhost"
-BROKER_PORT = 1883
-TOPICS = ["car_1", "car_2", "car_3"]
-ORION_URL = "http://localhost:1026/v2/entities"
+load_dotenv()
 
-# Logging setup
+BROKER_ADDRESS = os.getenv('CB_ADDRESS')
+BROKER_PORT = int(os.getenv('CB_PORT'))
+TOPICS = ["car_1", "car_2", "car_3"] #os.getenv('CAR_TOPICS', '').split(',') if os.getenv('CAR_TOPICS', '') else []
+ORION_URL = os.getenv('ORION_URL')
+
 logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig('../../../logging.conf')
 logger = logging.getLogger("MQTT-To-Orion")
 
 def send_data_to_orion(payload):
@@ -46,19 +49,6 @@ def send_data_to_orion(payload):
 def to_orion_format(payload):
     payload = list(json.loads(payload))
 
-    # return {
-    #     "id": payload[0],
-    #     "type": "car",
-    #     "timestamp": {"type": "DateTime", "value": payload[1]},
-    #     "latitude": {"type": "Float", "value": payload[2]},
-    #     "longitude": {"type": "Float", "value": payload[3]},
-    #     "oxidised": {"type": "Float", "value": payload[4]},
-    #     "pm1": {"type": "Float", "value": payload[5]},
-    #     "pm25": {"type": "Float", "value": payload[6]},
-    #     "pm10": {"type": "Float", "value": payload[7]},
-    #     "reduced": {"type": "Float", "value": payload[8]},
-    #     "nh3": {"type": "Float", "value": payload[9]},
-    # }
     return {  
             "id": payload[0],  
             "type": "CarAirQualityObserved",  

@@ -12,6 +12,8 @@ import logging.config
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import schedule
+import time
 
 load_dotenv()
 
@@ -253,7 +255,7 @@ def send_data_to_orion(payload):
         logger.error(f"Error while sending data to Orion: {str(e)}")
 
 
-if __name__=="__main__":
+def main():
     ## Step1: Get data and unzip them
 
     client = cdsapi.Client()
@@ -291,3 +293,10 @@ if __name__=="__main__":
 
         for entity in entities:
             send_data_to_orion(entity)
+
+if __name__=="__main__":
+    schedule.every().hour.do(main)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(60)

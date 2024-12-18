@@ -9,6 +9,8 @@ import logging
 import logging.config
 import os
 from dotenv import load_dotenv
+import time
+import schedule
 
 load_dotenv()
 
@@ -77,7 +79,7 @@ def send_data_to_orion(payload):
     except Exception as e:
         logger.error(f"Error while sending data to Orion: {str(e)}")
 
-if __name__=="__main__":
+def main():
     data_file = "station_aqi_data.json"
 
     data, message = load_data(data_file)
@@ -110,3 +112,10 @@ if __name__=="__main__":
 
 
         send_data_to_orion(payload)
+
+if __name__=="__main__":
+    schedule.every().hour.do(main)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
