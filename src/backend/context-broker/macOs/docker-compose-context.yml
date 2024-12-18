@@ -20,3 +20,9 @@ services:
       - apars-greece-network
   
 volumes:
+  mongo-db:
+
+networks:
+  apars-greece-network:
+    name: apars-greece-network
+    driver: bridge
