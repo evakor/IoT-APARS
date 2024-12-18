@@ -1,0 +1,163 @@
+If we want to support MQTT notifications for context broker, we have to:
+
+
+1. Start orion with MQTT
+
+version: '3.8'
+
+services:
+  apars-greece-context-broker:
+    image: telefonicaiot/fiware-orion:latest
+    container_name: apars-greece-context-broker
+    platform: linux/amd64  # Adjust for your architecture
+    ports:
+      - "1026:1026"
+    depends_on:
+      - apars-greece-context-broker-db
+    command: >
+      -dbURI mongodb://apars-greece-context-broker-db:27017
+      -mqttHost apars-greece-mqtt-broker
+      -mqttPort 1883
+    networks:
+      - apars-greece-network
+
+  apars-greece-context-broker-db:
+    image: mongo:4.4
+    platform: linux/amd64  # Adjust for your architecture
+    command: --nojournal
+    volumes:
+      - mongo-db:/data/db
+    networks:
+      - apars-greece-network
+
+volumes:
+  mongo-db:
+
+networks:
+  apars-greece-network:
+    external: true
+
+
+----------------------------------------------------------------------------------------------------
+
+        docker-compose -f docker-compose-mqtt.yml up -d
+        docker-compose -f docker-compose-context.yml up -d
+
+        //combined
+        docker-compose -f docker-compose-mqtt.yml -f docker-compose-context.yml up -d
+
+
+----------------------------------------------------------------------------------------------------
+
+
+2. Add this to the MQTT so that the CB can retry if the MQTT broker isn't ready when it first tries to connect
+
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-W", "2"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+----------------------------------------------------------------------------------------------------
+Verify Connectivity
+docker network inspect apars-greece-network
+
+
+----------------------------------------------------------------------------------------------------
+
+
+3. Modify subscriptions script
+
+import requests
+import json
+
+# Orion Context Broker URL
+ORION_URL = "http://localhost:1026/v2/subscriptions"
+
+# MQTT details
+MQTT_BROKER = "mqtt://apars-greece-mqtt-broker:1883"  # Replace with service name and port
+MQTT_TOPICS = {
+    "station": "station/data",
+    "car": "car/data",
+    "satellite": "satellite/data"
+}
+
+station_data_subscription_payload = {
+    "description": "Subscription for ground_station updates",
+    "subject": {
+        "entities": [
+            {"idPattern": ".*", "type": "StationAirQualityObserved"}
+        ],
+        "condition": {"attrs": ["aqi"]}
+    },
+    "notification": {
+        "mqtt": {
+            "url": MQTT_BROKER,
+            "topic": MQTT_TOPICS["station"]
+        },
+        "attrs": ["aqi", "location", "dateObserved"]
+    },
+    "expires": "2040-01-01T14:00:00.00Z",
+    "throttling": 5
+}
+
+
+4. Modify webhooks script
+
+we have to integrate an MQTT client into the script. We have to add the following ones to our code:
+
+from paho.mqtt.client import Client
+import threading
+
+# MQTT settings
+MQTT_BROKER = "apars-greece-mqtt-broker"
+MQTT_PORT = 1883
+MQTT_TOPICS = {
+    "car": "car/data",
+    "satellite": "satellite/data",
+    "station": "station/data"
+}
+
+
+
+# MQTT callback functions
+def on_connect(client, userdata, flags, rc):
+    print(f"Connected to MQTT broker with result code {rc}")
+    # Subscribe to topics
+    for topic in MQTT_TOPICS.values():
+        client.subscribe(topic)
+        print(f"Subscribed to topic: {topic}")
+
+def on_message(client, userdata, msg):
+    print(f"Received MQTT message on topic {msg.topic}: {msg.payload.decode()}")
+    try:
+        data = json.loads(msg.payload.decode())
+        if msg.topic == MQTT_TOPICS["car"]:
+            send_to_influxdb(data, 'car_metrics')
+        elif msg.topic == MQTT_TOPICS["satellite"]:
+            send_to_influxdb(data, 'satellite_metrics')
+        elif msg.topic == MQTT_TOPICS["station"]:
+            send_to_influxdb(data, 'station_metrics')
+    except Exception as e:
+        print(f"Error processing MQTT message: {e}")
+
+# Run Flask app and MQTT client concurrently
+def start_flask():
+    app.run(debug=True, host='0.0.0.0', port=5001)
+
+def start_mqtt():
+    mqtt_client = Client()
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
+    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    mqtt_client.loop_forever()
+
+
+if __name__ == '__main__':
+    # Use threading to run Flask and MQTT simultaneously
+    flask_thread = threading.Thread(target=start_flask)
+    mqtt_thread = threading.Thread(target=start_mqtt)
+    flask_thread.start()
+    mqtt_thread.start()
+    flask_thread.join()
+    mqtt_thread.join()
