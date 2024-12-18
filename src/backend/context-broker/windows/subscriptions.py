@@ -44,7 +44,7 @@ car_data_subscription_payload = {
             }
         ],
         "condition": {
-            "attrs": ["co","co2","pm1","pm25","pm10","oxidised","nh3"]  # NEED TO DEFINE WHEN TRIGGERED
+            "attrs": ["dateObserved"]  # NEED TO DEFINE WHEN TRIGGERED
         }
     },
     "notification": {
@@ -127,9 +127,9 @@ def get_subscriptions():
 
 if __name__=="__main__":
     #Create subscriptions
-    subscribe(station_data_subscription_payload)
+    #subscribe(station_data_subscription_payload)
     subscribe(car_data_subscription_payload)
-    subscribe(satellite_data_subscription_payload)
+    #subscribe(satellite_data_subscription_payload)
     
     get_subscriptions()
     # subscribe(station_data_subscription_payload)
