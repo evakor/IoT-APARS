@@ -29,10 +29,10 @@ lon_min, lon_max = -180, 180
 lat_min, lat_max = float(os.getenv('SOUTH')), float(os.getenv('NORTH'))
 lon_min, lon_max = float(os.getenv('WEST')), float(os.getenv('EAST'))
 
-apiToken = 'ecaa84eb1dbceeaf83c27c213369e4cf372c03c8'
+apiToken = os.getenv('STATION_API')
 url = f"https://api.waqi.info/map/bounds/?token={apiToken}&latlng={lat_min},{lon_min},{lat_max},{lon_max}"
 
-ORION_URL = "http://localhost:1026/v2/entities"
+ORION_URL = os.getenv('ORION_URL')
 
 
 def load_data(data_file):

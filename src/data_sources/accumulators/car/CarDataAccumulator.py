@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BROKER_ADDRESS = os.getenv('CB_ADDRESS')
-BROKER_PORT = int(os.getenv('CB_PORT'))
+BROKER_ADDRESS = os.getenv('MQTT_ADDRESS')
+BROKER_PORT = int(os.getenv('MQTT_PORT'))
 TOPICS = ["car_1", "car_2", "car_3"] #os.getenv('CAR_TOPICS', '').split(',') if os.getenv('CAR_TOPICS', '') else []
 ORION_URL = os.getenv('ORION_URL')
 

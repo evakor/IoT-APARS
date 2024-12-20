@@ -21,7 +21,7 @@ logging.config.fileConfig('../logging.conf')
 logger = logging.getLogger('SATELLITE_ACCUMULATOR')
 
 
-ORION_URL = "http://localhost:1026/v2/entities"
+ORION_URL = os.getenv('ORION_URL')
 
 dataset = "cams-europe-air-quality-forecasts"
 

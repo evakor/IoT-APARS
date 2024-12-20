@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BROKER_ADDRESS = "localhost"
-BROKER_PORT = 1883
+BROKER_ADDRESS = os.getenv('MQTT_ADDRESS')
+BROKER_PORT = int(os.getenv('MQTT_PORT'))
 
 
 def generate_random_coordinates(east, west, north, south):
@@ -163,17 +163,17 @@ def publish_to_mqtt(client, topic, payload):
 def post_car_data_to_mqtt(car_data):
     def post_for_car(car):
         client = mqtt.Client()
-        client.username_pw_set("user", "password")
+        # client.username_pw_set("user", "password")
         client.connect(BROKER_ADDRESS, BROKER_PORT)
 
         car_id = car["car_id"]
-        topic = f"car_{car_id}"
+        topic = f"apars_cars"
         route = car["route"]
 
         for point in route[0:5]:
             timestamp = datetime.now().isoformat()
 
-            payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], point["oxidised"], point["pm1"], point["pm25"], point["pm10"], point["reduced"], point["nh3"]]
+            payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], point["pm1"], point["pm25"], point["pm10"], point["oxidised"], point["reduced"], point["nh3"]]
             
             publish_to_mqtt(client, topic, payload)
             
