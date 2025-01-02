@@ -3,7 +3,14 @@ import json
 
 # Orion Context Broker URL
 ORION_URL = "http://localhost:1026/v2/subscriptions"
-WEBHOOK_SERVER_URL = "http://localhost:5001"
+# WEBHOOK_SERVER_URL = "http://localhost:5001"
+
+MQTT_BROKER = "mqtt://apars-greece-mqtt-broker:1883"  # Replace with service name and port
+MQTT_TOPICS = {
+    "station": "station/data",
+    "car": "car/data",
+    "satellite": "satellite/data"
+}
 
 
 # Subscription payload test
@@ -21,9 +28,11 @@ station_data_subscription_payload = {
         }
     },
     "notification": {
-        "http": {
+        "mqtt": {
             # "url": "http://localhost:5000/notify"  # Webhook server URL
-            "url": f"{WEBHOOK_SERVER_URL}/station-data-upload"
+            # "url": f"{WEBHOOK_SERVER_URL}/station-data-upload"
+            "url": MQTT_BROKER,
+            "topic": MQTT_TOPICS["station"]
         },
         "attrs": ["aqi", "location","dateObserved"]  # Attributes to include in notifications
     },
@@ -47,9 +56,11 @@ car_data_subscription_payload = {
         }
     },
     "notification": {
-        "http": {
+        "mqtt": {
             # "url": "http://localhost:5000/notify"  # Webhook server URL
-            "url":f"{WEBHOOK_SERVER_URL}/car-data-upload"
+            # "url":f"{WEBHOOK_SERVER_URL}/car-data-upload"
+            "url": MQTT_BROKER,
+            "topic": MQTT_TOPICS["car"]
         },
         "attrs": ["location","pm1","pm25", "pm10", "co","co2", "dateObserved"]  # Attributes to include in notifications
     },
@@ -73,9 +84,11 @@ satellite_data_subscription_payload = {
         }
     },
     "notification": {
-        "http": {
+        "mqtt": {
             # "url": "http://localhost:5000/notify"  # Webhook server URL
-            "url":f"{WEBHOOK_SERVER_URL}/satellite-upload"
+            # "url":f"{WEBHOOK_SERVER_URL}/satellite-upload"
+            "url": MQTT_BROKER,
+            "topic": MQTT_TOPICS["satellite"]
         },
         "attrs": ["dust", "nitrogen_monoxide", "non_methane_vocs", "particulate_matter_2.5um", 
             "particulate_matter_10um", "pm2.5_total_organic_matter", "pm10_sea_salt_dry", 

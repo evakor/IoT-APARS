@@ -1,5 +1,6 @@
 If we want to support MQTT notifications for context broker, we have to:
 
+mporoume na baloume ola ta id na xekinane me omada 13 sth thesi tou idPattern -- omada13 .*
 
 1. Start orion with MQTT
 
