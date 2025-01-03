@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Orion Context Broker URL
-ORION_URL = os.getenv('ORION_URL')
+ORION_URL = os.getenv('ORION_URL')+"/subscriptions"
 
 MQTT_BROKER = f"mqtt://{os.getenv('MQTT_ADDRESS')}:{os.getenv('MQTT_PORT')}"
 MQTT_TOPICS = {
@@ -100,18 +100,18 @@ satellite_data_subscription_payload = {
 
 def subscribe(payload):
     # Check existing subscriptions
-    response = requests.get(ORION_URL)
-    if response.status_code == 200:
-        subscriptions = response.json()
-        for sub in subscriptions:
-            if sub["description"] == payload["description"] and sub["notification"]["mqtt"]["url"] == payload["notification"]["mqtt"]["url"]:
-                print("Subscription already exists. Skipping...")
-                return
+    # response = requests.get(ORION_URL)
+    # if response.status_code == 200:
+    #     subscriptions = response.json()
+    #     for sub in subscriptions:
+    #         if sub["description"] == payload["description"] and sub["notification"]["mqtt"]["url"] == payload["notification"]["mqtt"]["url"]:
+    #             print("Subscription already exists. Skipping...")
+    #             return
     
     response = requests.post(
         ORION_URL,
         headers={"Content-Type": "application/json"},
-        data=json.dumps(station_data_subscription_payload)
+        data=json.dumps(payload)
     )
 
     # Check the response
@@ -139,6 +139,6 @@ if __name__=="__main__":
     subscribe(car_data_subscription_payload)
     subscribe(satellite_data_subscription_payload)
     
-    get_subscriptions()
+    #get_subscriptions()
     # subscribe(station_data_subscription_payload)
 # /v2/subscriptions/67484efb121e579a23020eea

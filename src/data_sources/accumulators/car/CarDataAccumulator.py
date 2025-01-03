@@ -11,8 +11,8 @@ load_dotenv()
 
 BROKER_ADDRESS = os.getenv('MQTT_ADDRESS')
 BROKER_PORT = int(os.getenv('MQTT_PORT'))
-TOPICS = ["car_1", "car_2", "car_3"] #os.getenv('CAR_TOPICS', '').split(',') if os.getenv('CAR_TOPICS', '') else []
-ORION_URL = os.getenv('ORION_URL')
+TOPICS = ["apars_cars"] # ["car_1", "car_2", "car_3"] #os.getenv('CAR_TOPICS', '').split(',') if os.getenv('CAR_TOPICS', '') else []
+ORION_URL = os.getenv('ORION_URL')+"/entities"
 
 logging.basicConfig(level=logging.INFO)
 logging.config.fileConfig('../../../logging.conf')

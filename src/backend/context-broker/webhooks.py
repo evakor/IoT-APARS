@@ -20,7 +20,7 @@ client = InfluxDBClient(url=os.getenv("INFLUX_URL"), token=token, org=org)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
 MQTT_BROKER = os.getenv("MQTT_ADDRESS")
-MQTT_PORT = os.getenv("MQTT_PORT")
+MQTT_PORT = int(os.getenv("MQTT_PORT"))
 MQTT_TOPICS = {
     "station": "station",
     "car": "car",
@@ -28,14 +28,45 @@ MQTT_TOPICS = {
 }
 
 
-def send_to_influxdb(data, measurement):
-    point = Point(measurement) \
-        .tag("id", data['id'])
-    for key, value in data.items():
-        if key != 'id':  # Assuming 'id' is used as a tag and not a field
-            point.field(key, float(value['value']))
-    point.time(datetime.utcnow(), WritePrecision.NS)
-    write_api.write(bucket=bucket, org=org, record=point)
+# def send_to_influxdb(data, measurement_type):
+#     point = Point(measurement_type).tag("id", data['id'])
+
+#     payload = data["data"][0]
+
+#     print(f"\n{payload}")
+
+#     for key, value in payload:
+#         if key != 'id':  # Assuming 'id' is used as a tag and not a field
+#             point.field(key, float(value['value']))
+
+#     point.time(datetime.utcnow(), WritePrecision.NS)
+
+#     write_api.write(bucket=bucket, org=org, record=point)
+
+def send_to_influxdb(data, measurement_type):
+    try:
+        payload = data["data"][0]
+
+        point = Point(measurement_type) \
+                .tag("id", payload['id']) \
+                .field("pm1", payload['pm1']['value']) \
+                .field("pm25", payload['pm25']['value']) \
+                .field("pm10", payload['pm10']['value']) \
+                .field("co", payload['co']['value']) \
+                .field("co2", payload['co2']['value']) \
+                .time(payload['dateObserved']['value']) \
+                .field("latitude", payload['location']['value']['coordinates'][0]) \
+                .field("longitude", payload['location']['value']['coordinates'][1])
+
+        # Write to InfluxDB
+        write_api.write(bucket=bucket, org=org, record=point)
+        
+        # Print success message
+        print(f"Data for ID '{payload['id']}' successfully written to InfluxDB under measurement '{measurement_type}'.")
+        
+    except Exception as e:
+        # Handle and log any errors
+        print(f"Failed to write data to InfluxDB: {str(e)}")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -50,6 +81,7 @@ def on_message(client, userdata, msg):
     print(f"Received MQTT message on topic {msg.topic}: {msg.payload.decode()}")
     try:
         data = json.loads(msg.payload.decode())
+        print(data)
         if msg.topic == MQTT_TOPICS["car"]:
             send_to_influxdb(data, 'car_metrics')
         elif msg.topic == MQTT_TOPICS["satellite"]:
