@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 token = os.getenv('GRAFANA_READ_AND_WRITE')
 org = 'students'
-bucket = 'OMADA 13- APARS'
+bucket = 'APARS'
 client = InfluxDBClient(url=os.getenv("INFLUX_URL"), token=token, org=org)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
@@ -47,16 +47,20 @@ def send_to_influxdb(data, measurement_type):
     try:
         payload = data["data"][0]
 
+        print(payload)
+
         point = Point(measurement_type) \
-                .tag("id", payload['id']) \
-                .field("pm1", payload['pm1']['value']) \
-                .field("pm25", payload['pm25']['value']) \
-                .field("pm10", payload['pm10']['value']) \
-                .field("co", payload['co']['value']) \
-                .field("co2", payload['co2']['value']) \
+                .tag("id", str(payload['id'])) \
+                .field("pm1", float(payload['pm1']['value'])) \
+                .field("pm25", float(payload['pm25']['value'])) \
+                .field("pm10", float(payload['pm10']['value'])) \
+                .field("co", float(payload['co']['value'])) \
+                .field("co2", float(payload['co2']['value'])) \
                 .time(payload['dateObserved']['value']) \
-                .field("latitude", payload['location']['value']['coordinates'][0]) \
-                .field("longitude", payload['location']['value']['coordinates'][1])
+                .field("latitude", float(payload['location']['value']['coordinates'][0])) \
+                .field("longitude", float(payload['location']['value']['coordinates'][1]))
+        
+        print(point.to_line_protocol())
 
         # Write to InfluxDB
         write_api.write(bucket=bucket, org=org, record=point)

@@ -62,9 +62,11 @@ car_data_subscription_payload = {
         },
         "attrs": ["location", "pm1", "pm25", "pm10", "co", "co2", "dateObserved"]  # Attributes to include in notifications
     },
-    "expires": "2040-01-01T14:00:00.00Z",
-    "throttling": 5
+    "expires": "2040-01-01T14:00:00.00Z"
 }
+
+# ,
+#     "throttling": 1
 
 satellite_data_subscription_payload = {
     "description": "Subscription for satellite air quality data updates",
