@@ -7,14 +7,14 @@ import json
 import requests
 import logging
 import logging.config
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 import time
-import schedule
 
 load_dotenv()
 
-logging.config.fileConfig('../logging.conf')
+logging.config.fileConfig('../../../logging.conf')
 logger = logging.getLogger('STATION_DATA')
 
 # Greece
@@ -32,7 +32,7 @@ lon_min, lon_max = float(os.getenv('WEST')), float(os.getenv('EAST'))
 apiToken = os.getenv('STATION_API')
 url = f"https://api.waqi.info/map/bounds/?token={apiToken}&latlng={lat_min},{lon_min},{lat_max},{lon_max}"
 
-ORION_URL = os.getenv('ORION_URL')
+ORION_URL = os.getenv('ORION_URL')+"/entities"
 
 
 def load_data(data_file):
@@ -59,21 +59,22 @@ def send_data_to_orion(payload):
         "Content-Type": "application/json"
     }
     try:
-        data = json.loads(payload)
-        entity_id = data["id"]
+        # Remove json.loads, as payload is already a dictionary
+        entity_id = payload["id"]
 
         url = f"{ORION_URL}/{entity_id}/attrs"
 
-        response = requests.patch(url, headers=headers, json={key: value for key, value in data.items() if key not in ["id", "type"]})
+        response = requests.patch(url, headers=headers, json={key: value for key, value in payload.items() if key not in ["id", "type"]})
 
         if response.status_code == 204:
             logger.info(f"Data updated successfully! CAR ID: {entity_id}")
         elif response.status_code == 404:  # Entity not found, create it
-            response = requests.post(ORION_URL, headers=headers, json=data)
+            response = requests.post(ORION_URL, headers=headers, json=payload)
             if response.status_code == 201:
                 logger.info(f"Data created successfully! CAR ID: {entity_id}")
             else:
                 logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
+                #print(f"\n\n{payload}\n\n")
         else:
             logger.error(f"Failed to send data: {response.status_code} - {response.text}")
     except Exception as e:
@@ -92,7 +93,7 @@ def main():
             "type": "StationAirQualityObserved",  
             "dateObserved": {  
                 "type": "DateTime",  
-                "value": station["station"]["time"]
+                "value": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z') #station["station"]["time"]
             },   
             "aqi": {  
                 "type": "Float",  
@@ -110,12 +111,9 @@ def main():
             }
         }
 
+        time.sleep(0.1)
 
         send_data_to_orion(payload)
 
 if __name__=="__main__":
-    schedule.every().hour.do(main)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    main()

@@ -26,7 +26,7 @@ station_data_subscription_payload = {
             }
         ],
         "condition": {
-            "attrs": ["aqi"]  # Trigger notifications when 'aqi' is updated
+            "attrs": ["aqi", "dateObserved"]  # Trigger notifications when 'aqi' is updated
         }
     },
     "notification": {
@@ -34,10 +34,9 @@ station_data_subscription_payload = {
             "url": MQTT_BROKER,
             "topic": MQTT_TOPICS["station"]
         },
-        "attrs": ["aqi", "location","dateObserved"]  # Attributes to include in notifications
+        "attrs": ["aqi", "location", "dateObserved"]  # Attributes to include in notifications
     },
-    "expires": "2040-01-01T14:00:00.00Z",
-    "throttling": 5
+    "expires": "2040-01-01T14:00:00.00Z"
 }
 
 
