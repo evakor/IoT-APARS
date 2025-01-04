@@ -2,16 +2,19 @@ from flask import Flask, request, jsonify
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 import json
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import pytz
 from paho.mqtt.client import Client
-import threading
 import os
+import logging
+import logging.config
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logging.config.fileConfig('../../logging.conf')
+logger = logging.getLogger("WEBHOOK")
 
 token = os.getenv('GRAFANA_READ_AND_WRITE')
 org = 'students'
@@ -28,26 +31,21 @@ MQTT_TOPICS = {
 }
 
 
-# def send_to_influxdb(data, measurement_type):
-#     point = Point(measurement_type).tag("id", data['id'])
-
-#     payload = data["data"][0]
-
-#     print(f"\n{payload}")
-
-#     for key, value in payload:
-#         if key != 'id':  # Assuming 'id' is used as a tag and not a field
-#             point.field(key, float(value['value']))
-
-#     point.time(datetime.utcnow(), WritePrecision.NS)
-
-#     write_api.write(bucket=bucket, org=org, record=point)
+def toUTC(timestamp):
+    if timestamp.endswith("Z"):
+        utc_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+        adjusted_time = utc_time - timedelta(hours=2)
+        return adjusted_time.isoformat(timespec='microseconds')
+    else:
+        local_time = datetime.fromisoformat(timestamp)
+        utc_plus_2 = pytz.timezone('Europe/Athens')
+        localized_time = utc_plus_2.localize(local_time)
+        utc_time = localized_time.astimezone(pytz.utc)
+        return utc_time.replace(tzinfo=None).isoformat(timespec='microseconds')
 
 def send_to_influxdb(data, measurement_type):
     try:
         payload = data["data"][0]
-
-        print(payload)
 
         point = Point(measurement_type) \
                 .tag("id", str(payload['id'])) \
@@ -56,36 +54,31 @@ def send_to_influxdb(data, measurement_type):
                 .field("pm10", float(payload['pm10']['value'])) \
                 .field("co", float(payload['co']['value'])) \
                 .field("co2", float(payload['co2']['value'])) \
-                .time(payload['dateObserved']['value']) \
+                .time(toUTC(payload['dateObserved']['value'])) \
                 .field("latitude", float(payload['location']['value']['coordinates'][0])) \
                 .field("longitude", float(payload['location']['value']['coordinates'][1]))
         
-        print(point.to_line_protocol())
 
-        # Write to InfluxDB
         write_api.write(bucket=bucket, org=org, record=point)
         
-        # Print success message
-        print(f"Data for ID '{payload['id']}' successfully written to InfluxDB under measurement '{measurement_type}'.")
+        logger.info(f"Data for ID '{payload['id']}' successfully written to InfluxDB under measurement '{measurement_type}'.")
         
     except Exception as e:
-        # Handle and log any errors
-        print(f"Failed to write data to InfluxDB: {str(e)}")
+        logger.error(f"Failed to write data to InfluxDB: {str(e)}")
 
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected to MQTT broker with result code {rc}")
+    logger.info(f"Connected to MQTT broker with result code {rc}")
     # Subscribe to topics
     for topic in MQTT_TOPICS.values():
         client.subscribe(topic)
-        print(f"Subscribed to topic: {topic}")
+        logger.info(f"Subscribed to topic: {topic}")
 
 
 def on_message(client, userdata, msg):
-    print(f"Received MQTT message on topic {msg.topic}: {msg.payload.decode()}")
+    logger.info(f"Received MQTT message on topic {msg.topic}: {msg.payload.decode()}")
     try:
         data = json.loads(msg.payload.decode())
-        print(data)
         if msg.topic == MQTT_TOPICS["car"]:
             send_to_influxdb(data, 'car_metrics')
         elif msg.topic == MQTT_TOPICS["satellite"]:
@@ -93,7 +86,7 @@ def on_message(client, userdata, msg):
         elif msg.topic == MQTT_TOPICS["station"]:
             send_to_influxdb(data, 'station_metrics')
     except Exception as e:
-        print(f"Error processing MQTT message: {e}")
+        logger.error(f"Error processing MQTT message: {e}")
         
 
 def start_mqtt():
