@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APARS Website</title>
+    <title>Grafana Panel - APARS</title>
     <style>
         /* Basic styles for the page */
         body {
@@ -37,12 +37,17 @@
 
         /* Content area styles */
         .content {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 80vh;
-            font-size: 3em;
-            color: #333;
+            background-color: #ffffff;
+        }
+
+        iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
         }
 
         /* Footer styles */
@@ -56,14 +61,14 @@
 </head>
 <body>
     <nav>
-        <a href="#">Home</a>
+        <a href="index.html">Home</a>
         <a href="routes_map.html">Routes</a>
         <a href="IoT.drawio.svg">Architecture</a>
         <a href="dashboard.html">Dashboard</a>
     </nav>
 
     <div class="content">
-        APARS
+        <iframe src="https://labserver.sense-campus.gr:8087/d-solo/ee9ok6m4537y8c/apars?from=1736588180815&to=1736609780815&timezone=browser&orgId=2&panelId=2&__feature.dashboardSceneSolo" width="450" height="200" frameborder="0"></iframe>
     </div>
 
     <footer>
