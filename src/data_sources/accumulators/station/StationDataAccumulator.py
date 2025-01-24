@@ -81,7 +81,7 @@ def send_data_to_orion(payload):
         logger.error(f"Error while sending data to Orion: {str(e)}")
 
 def main():
-    data_file = "station_aqi_data.json"
+    data_file = f"station_aqi_data{datetime.utcnow().strftime('%Y_%m_%dT%H_%M')}.json"
 
     data, message = load_data(data_file)
 

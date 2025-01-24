@@ -53,11 +53,12 @@ def query_influxdb(bucket, measurement, fields, last_n_minutes):
         field_filters = " or ".join([f'r["_field"] == "{field}"' for field in fields])
 
         flux_query = f'''
-        from(bucket: "{bucket}")
-          |> range(start: {start_time_str}, stop: {end_time_str})
-          |> filter(fn: (r) => r["_measurement"] == "{measurement}")
-          |> filter(fn: (r) => {field_filters})
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        from(bucket: "APARS")
+            |> range(start: 0)  // No specific time range
+            |> filter(fn: (r) => r["_measurement"] == "car_metrics")
+            |> filter(fn: (r) => r["_field"] == "aqi" or r["_field"] == "latitude" or r["_field"] == "longitude")
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+            |> limit(n: 1000)
         '''
 
         result = query_api.query(flux_query)
