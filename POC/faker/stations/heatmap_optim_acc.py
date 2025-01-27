@@ -1,15 +1,16 @@
 import json
 import numpy as np
-import folium
-from scipy.spatial import distance
+from numba import njit, prange
+from joblib import Parallel, delayed
+import time
 from PIL import Image
 import matplotlib.colors as mcolors
-from multiprocessing import Pool, cpu_count
-import time
+import folium
 
 # Constants
 EARTH_RADIUS = 6371000  # Radius of the Earth in meters
 
+@njit
 def meters_to_degrees(meters, lat):
     """Convert meters to degrees for latitude and longitude."""
     lat_deg = meters / EARTH_RADIUS * (180 / np.pi)
@@ -19,43 +20,45 @@ def meters_to_degrees(meters, lat):
 def create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m):
     """Create a grid of latitude and longitude points."""
     lat_step, lon_step = meters_to_degrees(accuracy_m, (lat_min + lat_max) / 2)
-    lat_range = np.arange(lat_min, lat_max, lat_step)
-    lon_range = np.arange(lon_min, lon_max, lon_step)
+    lat_range = np.arange(lat_min, lat_max, lat_step, dtype=np.float32)
+    lon_range = np.arange(lon_min, lon_max, lon_step, dtype=np.float32)
     return lat_range, lon_range
 
-def interpolate_point(args):
-    """Helper function to interpolate AQI for a single point on the grid."""
-    lat_range, lon_range, point, radical_decay = args
-    lat, lon, aqi = point['lat'], point['lon'], float(point['aqi'])
-    center = np.array([lat, lon])
-
-    grid_lats, grid_lons = np.meshgrid(lat_range, lon_range, indexing='ij')
-    grid_points = np.stack((grid_lats.ravel(), grid_lons.ravel()), axis=-1)
-    dists = np.linalg.norm(grid_points - center, axis=1).reshape(len(lat_range), len(lon_range)) * EARTH_RADIUS * np.pi / 180
-
+@njit(parallel=True)
+def calculate_decay(lat_grid, lon_grid, lat, lon, aqi, radical_decay):
+    """Calculate decay values for a grid chunk."""
+    dists = np.sqrt((lat_grid - lat) ** 2 + (lon_grid - lon) ** 2) * EARTH_RADIUS * np.pi / 180
     decay_mask = dists <= radical_decay
     decay_values = np.maximum(0, 1 - (dists / radical_decay))
-    interpolated_values = np.where(decay_mask, aqi * decay_values, 0)
-    return interpolated_values
+    return np.where(decay_mask, aqi * decay_values, 0)
+
+def interpolate_chunk(lat_chunk, lon_chunk, points, radical_decay):
+    """Interpolate AQI values for a chunk of the grid."""
+    chunk_result = np.zeros((len(lat_chunk), len(lon_chunk)), dtype=np.float32)
+    for point in points:
+        lat, lon, aqi = point['lat'], point['lon'], float(point['aqi'])
+        lat_grid, lon_grid = np.meshgrid(lat_chunk, lon_chunk, indexing='ij')
+        chunk_result += calculate_decay(lat_grid, lon_grid, lat, lon, aqi, radical_decay)
+    return chunk_result
 
 def interpolate_aqi(grid, points, radical_decay):
-    """Interpolate AQI values onto the grid using radial decay."""
+    """Interpolate AQI values onto the grid in chunks."""
     lat_range, lon_range = grid
-    interpolated_grid = np.full((len(lat_range), len(lon_range)), 10.0)  # Base AQI value
+    num_chunks = 10  # Adjust the number of chunks to balance memory and performance
 
-    args = [(lat_range, lon_range, point, radical_decay) for point in points]
+    lat_chunks = np.array_split(lat_range, num_chunks)
+    lon_chunks = np.array_split(lon_range, num_chunks)
 
-    # Split tasks into manageable chunks to avoid MemoryError
-    chunk_size = max(1, len(args) // cpu_count())
-    chunks = [args[i:i + chunk_size] for i in range(0, len(args), chunk_size)]
+    result = np.zeros((len(lat_range), len(lon_range)), dtype=np.float32)
+    for lat_chunk in lat_chunks:
+        for lon_chunk in lon_chunks:
+            result_chunk = interpolate_chunk(lat_chunk, lon_chunk, points, radical_decay)
+            result[
+                lat_range.searchsorted(lat_chunk[0]):lat_range.searchsorted(lat_chunk[-1]) + 1,
+                lon_range.searchsorted(lon_chunk[0]):lon_range.searchsorted(lon_chunk[-1]) + 1,
+            ] += result_chunk
 
-    with Pool(cpu_count()) as pool:
-        for chunk in chunks:
-            results = pool.map(interpolate_point, chunk)
-            for result in results:
-                interpolated_grid += result
-
-    return interpolated_grid
+    return result
 
 def generate_heatmap(grid, values):
     """Generate a heatmap image from the interpolated grid values."""
@@ -63,7 +66,6 @@ def generate_heatmap(grid, values):
 
     # Define colors and bounds for AQI levels
     color_list = ["green", "yellow", "orange", "red", "purple", "maroon"]
-    color_bounds = [0, 50, 100, 150, 200, 300, 500]
     cmap = mcolors.LinearSegmentedColormap.from_list("smooth_colormap", color_list, N=256)
 
     # Normalize values for coloring
@@ -91,19 +93,8 @@ def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max, points):
     )
     img_overlay.add_to(folium_map)
 
-    # Add black dots for data points
-    # for point in points:
-    #     folium.CircleMarker(
-    #         location=[point['lat'], point['lon']],
-    #         radius=3,
-    #         color='black',
-    #         fill=True,
-    #         fill_color='black',
-    #     ).add_to(folium_map)
-
     return folium_map
 
-# Main script
 def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
     start_time = time.time()
 
@@ -129,6 +120,6 @@ if __name__ == "__main__":
         lat_max=38.294508,
         lon_min=21.688356,
         lon_max=21.830913,
-        accuracy_m=5,
+        accuracy_m=5,  # Adjust resolution to reduce memory usage
         radical_decay=15
     )

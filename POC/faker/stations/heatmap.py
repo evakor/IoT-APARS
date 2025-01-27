@@ -4,6 +4,7 @@ import folium
 from scipy.spatial import distance
 from PIL import Image
 import matplotlib.colors as mcolors
+import time
 
 # Constants
 EARTH_RADIUS = 6371000  # Radius of the Earth in meters
@@ -56,10 +57,11 @@ def generate_heatmap(grid, values):
     # Convert to image using colormap
     heatmap = cmap(normalized_values / len(color_list))  # Normalize for colormap
     image = Image.fromarray((heatmap[:, :, :3] * 255).astype(np.uint8), mode='RGB')
+    image.save('heatmap.png')  # Save the image as heatmap.png
     return image
 
-def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max):
-    """Overlay the heatmap on a Folium map."""
+def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max, points):
+    """Overlay the heatmap on a Folium map and plot points."""
     folium_map = folium.Map(location=[(lat_min + lat_max) / 2, (lon_min + lon_max) / 2], zoom_start=12)
     img_overlay = folium.raster_layers.ImageOverlay(
         image=np.array(image),
@@ -68,10 +70,22 @@ def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max):
         interactive=True,
     )
     img_overlay.add_to(folium_map)
+
+    # Add black dots for points
+    for point in points:
+        folium.CircleMarker(
+            location=[point['lat'], point['lon']],
+            radius=2,
+            color='black',
+            fill=True,
+            fill_color='black'
+        ).add_to(folium_map)
+
     return folium_map
 
 # Main script
 def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
+    t_start = time.time()
     with open(json_file, 'r') as f:
         points = json.load(f)
 
@@ -79,13 +93,14 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     interpolated_values = interpolate_aqi(grid, points, radical_decay)
     heatmap_image = generate_heatmap(grid, interpolated_values)
 
-    folium_map = overlay_heatmap_on_map(heatmap_image, lat_min, lat_max, lon_min, lon_max)
-    folium_map.save('aqi_heatmap.html')
-    print("Heatmap saved as 'aqi_heatmap.html'")
+    folium_map = overlay_heatmap_on_map(heatmap_image, lat_min, lat_max, lon_min, lon_max, points)
+    folium_map.save('aqi_heatmap_with_points.html')
+    print(f"Elapsed time: {time.time() - t_start}")
+    print("Heatmap saved as 'aqi_heatmap_with_points.html' and image saved as 'heatmap.png'")
 
 if __name__ == "__main__":
     main(
-        json_file='datae.json',
+        json_file='car_data.json',
         lat_min=38.205683,
         lat_max=38.294508,
         lon_min=21.688356,
