@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Image Overlay on Folium Map</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h3>MQTT Image Overlay on Map</h3>
+    <div id="map"></div>
+
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([38.24527, 21.733226], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Define bounds for the image overlay (adjust as needed)
+        var bounds = [[38.240, 21.725], [38.250, 21.740]];
+
+        // Create an empty image overlay with 0.6 transparency
+        var imageLayer = L.imageOverlay("", bounds, { opacity: 0.6 }).addTo(map);
+
+        // MQTT Connection
+        const broker = "ws://150.140.186.118:9001"; // WebSocket MQTT connection
+        const topic = "image";
+
+        const client = mqtt.connect(broker);
+
+        client.on("connect", function () {
+            console.log("Connected to MQTT broker");
+            client.subscribe(topic, function (err) {
+                if (!err) {
+                    console.log("Subscribed to topic:", topic);
+                }
+            });
+        });
+
+        client.on("message", function (topic, message) {
+            if (topic === "image") {
+                let base64Image = message.toString();
+                console.log("Received Base64 Image:", base64Image.substring(0, 100) + "..."); // Print first 100 chars for debugging
+
+                let imageUrl = "data:image/png;base64," + base64Image;
+                
+                // Ensure the image is properly updated
+                imageLayer.setUrl(imageUrl);
+                console.log("Updated image overlay");
+            }
+        });
+
+        client.on("error", function (err) {
+            console.log("MQTT Error:", err);
+        });
+    </script>
+</body>
+</html>

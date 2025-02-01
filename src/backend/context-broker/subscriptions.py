@@ -39,6 +39,29 @@ station_data_subscription_payload = {
     "expires": "2040-01-01T14:00:00.00Z"
 }
 
+patras_station_data_subscription_payload = {
+    "description": "Subscription for patras_station updates",
+    "subject": {
+        "entities": [
+            {
+                "idPattern": ".*",  # Subscribe to all ground_station entities
+                "type": "PatrasStationAirQualityObserved"
+            }
+        ],
+        "condition": {
+            "attrs": ["aqi", "dateObserved"]  # Trigger notifications when 'aqi' is updated
+        }
+    },
+    "notification": {
+        "mqtt": {
+            "url": MQTT_BROKER,
+            "topic": MQTT_TOPICS["station"]
+        },
+        "attrs": ["aqi", "location", "dateObserved"]  # Attributes to include in notifications
+    },
+    "expires": "2040-01-01T14:00:00.00Z"
+}
+
 
 # Id based! Need research
 car_data_subscription_payload = {

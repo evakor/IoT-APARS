@@ -1,119 +1,65 @@
-# In this script data gets fetched from an API or the universities lab and then passed to the context broker
-# TODO: In production this service will get triggerd every 1 hour. There will also be a function that will chech if the station
-#       exists in the database. If it exists, then it will update it. Otherwise it will post the new station
-
 import os
 import json
 import requests
 import logging
 import logging.config
-from datetime import datetime
-import os
-from dotenv import load_dotenv
 import time
+from datetime import datetime
+from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.config.fileConfig('../../../logging.conf')
-logger = logging.getLogger('STATION_DATA')
+class StationDataCollector:
+    def __init__(self):
+        self.lat_min, self.lat_max = float(os.getenv('SOUTH')), float(os.getenv('NORTH'))
+        self.lon_min, self.lon_max = float(os.getenv('WEST')), float(os.getenv('EAST'))
+        self.orion_url = os.getenv('ORION_URL') + "/entities"
+        self.api_token = os.getenv('STATION_API')
+        self.url = f"https://api.waqi.info/map/bounds/?token={self.api_token}&latlng={self.lat_min},{self.lon_min},{self.lat_max},{self.lon_max}"
+        
+        logging.config.fileConfig('../../../logging.conf')
+        self.logger = logging.getLogger('STATION_DATA')
 
-# Greece
-lat_min, lat_max = 34.8021, 41.7489
-lon_min, lon_max = 19.3646, 29.6425
-
-# World
-lat_min, lat_max = -90, 90
-lon_min, lon_max = -180, 180
-
-# Patras
-lat_min, lat_max = float(os.getenv('SOUTH')), float(os.getenv('NORTH'))
-lon_min, lon_max = float(os.getenv('WEST')), float(os.getenv('EAST'))
-
-apiToken = os.getenv('STATION_API')
-url = f"https://api.waqi.info/map/bounds/?token={apiToken}&latlng={lat_min},{lon_min},{lat_max},{lon_max}"
-
-ORION_URL = os.getenv('ORION_URL')+"/entities"
-
-
-def load_data(data_file):
-    if os.path.exists(data_file):
-        with open(data_file, "r") as file:
-            data = json.load(file)
-        return data, "Fetched from local file"
-    else:
-        logger.info("Fetching data...")
+    def load_data(self):
         try:
-            response = requests.get(url)
+            response = requests.get(self.url)
             data = response.json()['data']
-            with open(data_file, "w") as file:
-                json.dump(data, file)
-            return data, "Fetched from api"
+            return data
         except Exception as e:
-            logger.error(f"An error occurred: {str(e)}")
-            return None, f"An error occurred: {str(e)}"
+            self.logger.error(f"Error fetching station data: {str(e)}")
+            return None
 
+    def send_data_to_orion(self, payload):
+        headers = {"Content-Type": "application/json"}
+        try:
+            entity_id = payload["id"]
+            url = f"{self.orion_url}/{entity_id}/attrs"
 
-def send_data_to_orion(payload):
-    """Send data to Orion Context Broker."""
-    headers = {
-        "Content-Type": "application/json"
-    }
-    try:
-        # Remove json.loads, as payload is already a dictionary
-        entity_id = payload["id"]
+            response = requests.patch(url, headers=headers, json={k: v for k, v in payload.items() if k not in ["id", "type"]})
 
-        url = f"{ORION_URL}/{entity_id}/attrs"
-
-        response = requests.patch(url, headers=headers, json={key: value for key, value in payload.items() if key not in ["id", "type"]})
-
-        if response.status_code == 204:
-            logger.info(f"Data updated successfully! CAR ID: {entity_id}")
-        elif response.status_code == 404:  # Entity not found, create it
-            response = requests.post(ORION_URL, headers=headers, json=payload)
-            if response.status_code == 201:
-                logger.info(f"Data created successfully! CAR ID: {entity_id}")
+            if response.status_code == 204:
+                self.logger.info(f"Data updated successfully! Station ID: {entity_id}")
+            elif response.status_code == 404:
+                response = requests.post(self.orion_url, headers=headers, json=payload)
+                if response.status_code == 201:
+                    self.logger.info(f"Data created successfully! Station ID: {entity_id}")
+                else:
+                    self.logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
             else:
-                logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
-                #print(f"\n\n{payload}\n\n")
-        else:
-            logger.error(f"Failed to send data: {response.status_code} - {response.text}")
-    except Exception as e:
-        logger.error(f"Error while sending data to Orion: {str(e)}")
+                self.logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+        except Exception as e:
+            self.logger.error(f"Error sending data to Orion: {str(e)}")
 
-def main():
-    data_file = f"station_aqi_data{datetime.utcnow().strftime('%Y_%m_%dT%H_%M')}.json"
-
-    data, message = load_data(data_file)
-
-    logger.info(message)
-
-    for station in data:
-        payload = {  
-            "id": f"station_{station['uid']}",  
-            "type": "StationAirQualityObserved",  
-            "dateObserved": {  
-                "type": "DateTime",  
-                "value": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z') #station["station"]["time"]
-            },   
-            "aqi": {  
-                "type": "Float",  
-                "value": station["aqi"]
-            }, 
-            "location": {  
-                "type": "geo:json",  
-                "value": {  
-                "type": "Point",  
-                "coordinates": [  
-                    station["lat"],
-                    station["lon"]
-                ]  
-                }  
-            }
-        }
-
-        time.sleep(0.1)
-
-        send_data_to_orion(payload)
-
-if __name__=="__main__":
-    main()
+    def accumulate(self):
+        data = self.load_data()
+        if data:
+            for station in data:
+                payload = {
+                    "id": f"station_{station['uid']}",  
+                    "type": "StationAirQualityObserved",  
+                    "dateObserved": {"type": "DateTime", "value": datetime.utcnow().isoformat()},
+                    "aqi": {"type": "Float", "value": station["aqi"]},
+                    "location": {"type": "geo:json", "value": {"type": "Point", "coordinates": [station["lat"], station["lon"]]}}
+                }
+                self.send_data_to_orion(payload)
+                time.sleep(0.1)

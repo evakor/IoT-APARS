@@ -3,136 +3,89 @@ import requests
 import logging
 import logging.config
 import json
-from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-BROKER_ADDRESS = os.getenv('MQTT_ADDRESS')
-BROKER_PORT = int(os.getenv('MQTT_PORT'))
-TOPICS = ["apars_cars"] # ["car_1", "car_2", "car_3"] #os.getenv('CAR_TOPICS', '').split(',') if os.getenv('CAR_TOPICS', '') else []
-ORION_URL = os.getenv('ORION_URL')+"/entities"
+class CarMQTTListener:
+    def __init__(self):
+        self.broker_address = os.getenv('MQTT_ADDRESS')
+        self.broker_port = int(os.getenv('MQTT_PORT'))
+        self.topics = ["apars_cars"]
+        self.orion_url = os.getenv('ORION_URL') + "/entities"
 
-logging.basicConfig(level=logging.INFO)
-logging.config.fileConfig('../../../logging.conf')
-logger = logging.getLogger("MQTT-To-Orion")
+        logging.config.fileConfig('../../../logging.conf')
+        self.logger = logging.getLogger("MQTT-To-Orion")
 
-def send_data_to_orion(payload):
-    """Send data to Orion Context Broker."""
-    headers = {
-        "Content-Type": "application/json"
-    }
-    try:
-        data = to_orion_format(payload)#json.loads(payload)
+        self.client = mqtt.Client()
+        self.client.username_pw_set("user", "password")
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
 
-        entity_id = data["id"]
-
-        url = f"{ORION_URL}/{entity_id}/attrs"
-
-        response = requests.patch(url, headers=headers, json={key: value for key, value in data.items() if key not in ["id", "type"]})
-
-        if response.status_code == 204:
-            logger.info(f"Data updated successfully! CAR ID: {entity_id}")
-        elif response.status_code == 404:  # Entity not found, create it
-            response = requests.post(ORION_URL, headers=headers, json=data)
-            if response.status_code == 201:
-                logger.info(f"Data created successfully! CAR ID: {entity_id}")
-            else:
-                logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
+    def on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            self.logger.info("Connected to MQTT broker successfully!")
+            for topic in self.topics:
+                client.subscribe(topic)
+                self.logger.info(f"Subscribed to topic: {topic}")
         else:
-            logger.error(f"Failed to send data: {response.status_code} - {response.text}")
-    except Exception as e:
-        logger.error(f"Error while sending data to Orion: {str(e)}")
+            self.logger.error(f"Failed to connect to MQTT broker, return code {rc}")
 
+    def on_message(self, client, userdata, msg):
+        self.logger.info(f"Message received from topic {msg.topic}")
+        try:
+            payload = msg.payload.decode("utf-8")
+            self.logger.info(f"Payload: {payload}")
+            self.send_data_to_orion(payload)
+        except Exception as e:
+            self.logger.error(f"Error processing message: {str(e)}")
 
-def to_orion_format(payload):
-    payload = list(json.loads(payload))
+    def send_data_to_orion(self, payload):
+        headers = {"Content-Type": "application/json"}
+        try:
+            data = self.to_orion_format(payload)
+            entity_id = data["id"]
+            url = f"{self.orion_url}/{entity_id}/attrs"
 
-    return {  
+            response = requests.patch(url, headers=headers, json={k: v for k, v in data.items() if k not in ["id", "type"]})
+
+            if response.status_code == 204:
+                self.logger.info(f"Data updated successfully! CAR ID: {entity_id}")
+            elif response.status_code == 404:
+                response = requests.post(self.orion_url, headers=headers, json=data)
+                if response.status_code == 201:
+                    self.logger.info(f"Data created successfully! CAR ID: {entity_id}")
+                else:
+                    self.logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
+            else:
+                self.logger.error(f"Failed to send data: {response.status_code} - {response.text}")
+        except Exception as e:
+            self.logger.error(f"Error sending data to Orion: {str(e)}")
+
+    def to_orion_format(self, payload):
+        payload = list(json.loads(payload))
+        return {  
             "id": payload[0],  
             "type": "CarAirQualityObserved",  
-            "dateObserved": {  
-                "type": "DateTime",  
-                "value": payload[1]  
-            },   
-            "co": {  
-                "type": "Float",  
-                "value": 10.0 
-            }, 
-            "co2": {  
-                "type": "Float",  
-                "value": 10.0
-            },  
-            "pm1": {  
-                "type": "Float",  
-                "value": payload[5]
-            },  
-            "pm25": {  
-                "type": "Float",  
-                "value": payload[6]
-            },  
-            "pm10": {  
-                "type": "Float",  
-                "value": payload[7]
-            },  
-            "oxidised": {  
-                "type": "Float",  
-                "value": payload[4]
-            },  
-            "reduced": {  
-                "type": "Float",  
-                "value": payload[8]
-            },  
-            "nh3": {  
-                "type": "Float",  
-                "value": payload[9]
-            },  
-            "location": {  
-                "type": "geo:json",  
-                "value": {  
-                "type": "Point",  
-                "coordinates": [  
-                    payload[2],  
-                    payload[3]  
-                ]  
-                }  
+            "dateObserved": {"type": "DateTime", "value": payload[1]},   
+            "co": {"type": "Float", "value": 10.0}, 
+            "co2": {"type": "Float", "value": 10.0},
+            "pm1": {"type": "Float", "value": payload[5]},
+            "pm25": {"type": "Float", "value": payload[6]},
+            "pm10": {"type": "Float", "value": payload[7]},
+            "oxidised": {"type": "Float", "value": payload[4]},
+            "reduced": {"type": "Float", "value": payload[8]},
+            "nh3": {"type": "Float", "value": payload[9]},
+            "location": {
+                "type": "geo:json",
+                "value": {"type": "Point", "coordinates": [payload[2], payload[3]]}
             }
-            }  
+        }
 
-
-# MQTT callbacks
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        logger.info("Connected to MQTT broker successfully!")
-        # Subscribe to all topics in the list
-        for topic in TOPICS:
-            client.subscribe(topic)
-            logger.info(f"Subscribed to topic: {topic}")
-    else:
-        logger.error(f"Failed to connect to MQTT broker, return code {rc}")
-
-def on_message(client, userdata, msg):
-    logger.info(f"Message received from topic {msg.topic}")
-    try:
-        payload = msg.payload.decode("utf-8")
-        logger.info(f"Payload: {payload}")
-        send_data_to_orion(payload)
-    except Exception as e:
-        logger.error(f"Error processing message from topic {msg.topic}: {str(e)}")
-
-
-
-if __name__ == "__main__":
-    client = mqtt.Client()
-    client.username_pw_set("user", "password")
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-    try:
-        client.connect(BROKER_ADDRESS, BROKER_PORT)
-    except Exception as e:
-        logger.error(f"Failed to connect to MQTT broker: {str(e)}")
-        quit()
-
-    client.loop_forever()
+    def listen(self):
+        try:
+            self.client.connect(self.broker_address, self.broker_port)
+            self.client.loop_start()
+        except Exception as e:
+            self.logger.error(f"Failed to connect to MQTT broker: {str(e)}")
