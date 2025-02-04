@@ -136,7 +136,7 @@ def post_car_data_to_mqtt(car_data):
         topic = f"apars_cars"
         route = car["route"]
 
-        for point in route[0:20]:
+        for point in route:
             timestamp = datetime.now().isoformat()
             payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], 
                        point["temperature"], point["humidity"], point["pressure"], 

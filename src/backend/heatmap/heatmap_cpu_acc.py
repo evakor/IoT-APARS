@@ -7,6 +7,7 @@ import matplotlib.colors as mcolors
 from multiprocessing import Pool, cpu_count
 import time
 import paho.mqtt.client as mqtt
+from fetcher import InfluxDataFetcher
 import base64
 import os
 from dotenv import load_dotenv
@@ -113,26 +114,35 @@ def publish(image_path):
     client.disconnect()
 
 def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
-    image_path = "heatmap_image.png"
+    image_path = "heatmap.png"
 
     start_time = time.time()
 
-    with open(json_file, 'r') as f:
-        points = json.load(f)
+    # with open(json_file, 'r') as f:
+    #     points = json.load(f)
+    
+    fetcher = InfluxDataFetcher()
+    latest_patras_station_data = fetcher.fetch_latest_patras_station_data()
+    latest_station_data = fetcher.fetch_latest_station_data()
+    last_n_car_data = fetcher.fetch_last_n_car_data(200)
 
-    # grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
-    # interpolated_values = interpolate_aqi(grid, points, radical_decay)
-    # heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
+    points = latest_patras_station_data + latest_station_data + last_n_car_data
+
+    print(f"Interpolating {len(points)} points")
+
+    grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
+    interpolated_values = interpolate_aqi(grid, points, radical_decay)
+    heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
 
 
     heatmap_image = Image.open(image_path)
     publish(image_path)
 
     folium_map = overlay_heatmap_on_map(heatmap_image, lat_min, lat_max, lon_min, lon_max, points)
-    folium_map.save('aqi_heatmap_with_points.html')
+    folium_map.save('aqi_heatmap.html')
 
     elapsed_time = time.time() - start_time
-    print(f"Heatmap with points saved as 'aqi_heatmap_with_points.html' in {elapsed_time:.2f} seconds")
+    print(f"Heatmap with points saved as 'aqi_heatmap.html' in {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
     main(
