@@ -17,7 +17,7 @@ import time
 
 load_dotenv()
 
-logging.config.fileConfig('../logging.conf')
+logging.config.fileConfig('../../../logging.conf')
 logger = logging.getLogger('SATELLITE_ACCUMULATOR')
 
 

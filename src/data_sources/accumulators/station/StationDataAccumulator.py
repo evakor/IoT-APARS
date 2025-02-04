@@ -17,7 +17,14 @@ class StationDataCollector:
         self.api_token = os.getenv('STATION_API')
         self.url = f"https://api.waqi.info/map/bounds/?token={self.api_token}&latlng={self.lat_min},{self.lon_min},{self.lat_max},{self.lon_max}"
         
-        logging.config.fileConfig('../../../logging.conf')
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_config_path = os.path.join(base_dir, 'logging.conf')
+
+        if os.path.exists(log_config_path):
+            logging.config.fileConfig(log_config_path)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
         self.logger = logging.getLogger('STATION_DATA')
 
     def load_data(self):

@@ -15,7 +15,14 @@ class CarMQTTListener:
         self.topics = ["apars_cars"]
         self.orion_url = os.getenv('ORION_URL') + "/entities"
 
-        logging.config.fileConfig('../../../logging.conf')
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_config_path = os.path.join(base_dir, 'logging.conf')
+
+        if os.path.exists(log_config_path):
+            logging.config.fileConfig(log_config_path)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
         self.logger = logging.getLogger("MQTT-To-Orion")
 
         self.client = mqtt.Client()
@@ -65,27 +72,38 @@ class CarMQTTListener:
 
     def to_orion_format(self, payload):
         payload = list(json.loads(payload))
-        return {  
-            "id": payload[0],  
-            "type": "CarAirQualityObserved",  
-            "dateObserved": {"type": "DateTime", "value": payload[1]},   
-            "co": {"type": "Float", "value": 10.0}, 
-            "co2": {"type": "Float", "value": 10.0},
-            "pm1": {"type": "Float", "value": payload[5]},
-            "pm25": {"type": "Float", "value": payload[6]},
-            "pm10": {"type": "Float", "value": payload[7]},
-            "oxidised": {"type": "Float", "value": payload[4]},
-            "reduced": {"type": "Float", "value": payload[8]},
-            "nh3": {"type": "Float", "value": payload[9]},
+        return {
+            "id": payload[0],
+            "type": "CarAirQualityObserved",
+            "dateObserved": {"type": "DateTime", "value": payload[1]},
+            "temperature": {"type": "Float", "value": payload[4]},
+            "humidity": {"type": "Float", "value": payload[5]},
+            "pressure": {"type": "Float", "value": payload[6]},
+            "pm1": {"type": "Float", "value": payload[7]},
+            "pm25": {"type": "Float", "value": payload[8]},
+            "pm10": {"type": "Float", "value": payload[9]},
+            "lpg": {"type": "Float", "value": payload[10]},
+            "benzene": {"type": "Float", "value": payload[11]},
+            "co": {"type": "Float", "value": payload[12]},
+            "oxidised": {"type": "Float", "value": payload[13]},
+            "reduced": {"type": "Float", "value": payload[14]},
+            "nh3": {"type": "Float", "value": payload[15]},
+            "co2": {"type": "Float", "value": payload[16]},
+            "eco2": {"type": "Float", "value": payload[17]},
+            "tvoc": {"type": "Float", "value": payload[18]},
             "location": {
                 "type": "geo:json",
-                "value": {"type": "Point", "coordinates": [payload[2], payload[3]]}
+                "value": {
+                    "type": "Point",
+                    "coordinates": [payload[2], payload[3]]
+                }
             }
         }
 
     def listen(self):
         try:
             self.client.connect(self.broker_address, self.broker_port)
-            self.client.loop_start()
+            self.client.loop_forever()
         except Exception as e:
+            self.logger.error(f"Failed to connect to MQTT broker: {str(e)}")
             self.logger.error(f"Failed to connect to MQTT broker: {str(e)}")
