@@ -10,7 +10,7 @@ def accumulate_station_data():
     while True:
         station.accumulate()
         station_patras.accumulate()
-        time.sleep(120) # Every two minutes
+        time.sleep(600) # Every two minutes
 
 def listen_car_data():
     car = CarDataAccumulator.CarMQTTListener()

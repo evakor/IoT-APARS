@@ -9,11 +9,13 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from paho.mqtt.client import Client
 from dotenv import load_dotenv
 import Converters as c
+import threading
 
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logging.config.fileConfig('../../logging.conf')
+
 
 class WebhookBase:
     def __init__(self, topic, measurement, logger_name):
@@ -28,6 +30,7 @@ class WebhookBase:
         self.mqtt_client.connect(os.getenv("MQTT_ADDRESS"), int(os.getenv("MQTT_PORT")), 60)
         self.converter = c.Converters()
 
+
     def toUTC(self, timestamp):
         if timestamp.endswith("Z"):
             utc_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -40,13 +43,16 @@ class WebhookBase:
             utc_time = localized_time.astimezone(pytz.utc)
             return utc_time.replace(tzinfo=None).isoformat(timespec='microseconds')
 
+
     def send_to_influxdb(self, data):
         raise NotImplementedError("Subclasses must implement this method")
+
 
     def on_connect(self, client, userdata, flags, rc):
         self.logger.info(f"Connected to MQTT broker with result code {rc}")
         client.subscribe(self.topic)
         self.logger.info(f"Subscribed to topic: {self.topic}")
+
 
     def on_message(self, client, userdata, msg):
         self.logger.info(f"Received MQTT message on topic {msg.topic}: {msg.payload.decode()}")
@@ -56,12 +62,15 @@ class WebhookBase:
         except Exception as e:
             self.logger.error(f"Error processing MQTT message: {e}")
 
+
     def listen(self):
         self.mqtt_client.loop_forever()
+
 
 class CarWebhook(WebhookBase):
     def __init__(self):
         super().__init__(topic="apars/car", measurement="car_metrics", logger_name="CAR-WEBHOOK")
+
 
     def send_to_influxdb(self, data):
         try:
@@ -101,9 +110,11 @@ class CarWebhook(WebhookBase):
         except Exception as e:
             self.logger.error(f"Failed to write data to InfluxDB: {str(e)}")
 
+
 class StationWebhook(WebhookBase):
     def __init__(self):
         super().__init__(topic="apars/station/waqi", measurement="station_aqi", logger_name="STATION-WEBHOOK")
+
 
     def send_to_influxdb(self, data):
         try:
@@ -120,9 +131,11 @@ class StationWebhook(WebhookBase):
         except Exception as e:
             self.logger.error(f"Failed to write data to InfluxDB: {str(e)}")
 
+
 class PatrasStationWebhook(WebhookBase):
     def __init__(self):
         super().__init__(topic="apars/station/patras", measurement="patras_station_aqi", logger_name="STATION-PATRAS-WEBHOOK")
+
 
     def send_to_influxdb(self, data):
         try:
@@ -140,11 +153,24 @@ class PatrasStationWebhook(WebhookBase):
         except Exception as e:
             self.logger.error(f"Failed to write data to InfluxDB: {str(e)}")
 
+
+def start_client(webhook_instance):
+    webhook_instance.listen()
+
+
 if __name__ == '__main__':
     car_webhook = CarWebhook()
     station_webhook = StationWebhook()
     patras_station_webhook = PatrasStationWebhook()
 
-    car_webhook.listen()
-    station_webhook.listen()
-    patras_station_webhook.listen()
+    car_thread = threading.Thread(target=start_client, args=(car_webhook,))
+    station_thread = threading.Thread(target=start_client, args=(station_webhook,))
+    patras_station_thread = threading.Thread(target=start_client, args=(patras_station_webhook,))
+
+    car_thread.start()
+    station_thread.start()
+    patras_station_thread.start()
+
+    car_thread.join()
+    station_thread.join()
+    patras_station_thread.join()

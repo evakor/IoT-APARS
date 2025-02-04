@@ -57,21 +57,21 @@ def calculate_route_count(area_size, traffic_level):
 
 def generate_pollution_profile():
     return {
-        "temperature": {"type": "Float", "value": round(np.clip(np.random.normal(loc=20, scale=2),15, 25), 2)},
-        "humidity": {"type": "Float", "value": round(np.clip(np.random.normal(loc=20, scale=20), 0, 100), 2)},
-        "pressure": {"type": "Float", "value": round(np.clip(np.random.normal(loc=999, scale=0.1), 0, 1001), 2)},
-        "oxidised": {"type": "Float", "value": round(np.clip(np.random.normal(loc=1, scale=5), 0.05, 10), 2)},
-        "pm1": {"type": "Float", "value": round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2)},
-        "pm25": {"type": "Float", "value": round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2)},
-        "pm10": {"type": "Float", "value": round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2)},
-        "reduced": {"type": "Float", "value": round(np.clip(np.random.normal(loc=100, scale=200), 1, 1000), 2)},
-        "nh3": {"type": "Float", "value": round(np.clip(np.random.normal(loc=50, scale=100), 1, 300), 2)},
-        "lpg": {"type": "Float", "value": round(np.clip(np.random.normal(loc=750, scale=1200), 200, 10000), 2)},
-        "benzene": {"type": "Float", "value": round(np.clip(np.random.normal(loc=300, scale=120), 10, 1000), 2)},
-        "co": {"type": "Float", "value": round(np.clip(np.random.normal(loc=300, scale=500), 20, 2000), 2)},
-        "co2": {"type": "Float", "value": round(np.clip(np.random.normal(loc=1500, scale=5000), 400, 10000), 2)},
-        "eco2": {"type": "Float", "value": round(np.clip(np.random.normal(loc=10000, scale=5000), 400, 60000), 2)},
-        "tvoc": {"type": "Float", "value": round(np.clip(np.random.normal(loc=10000, scale=5000), 0, 60000), 2)}
+        "temperature": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=20, scale=2), 15, 25), 2))},
+        "humidity": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=20, scale=20), 0, 100), 2))},
+        "pressure": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=999, scale=0.1), 0, 1001), 2))},
+        "oxidised": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=1, scale=5), 0.05, 10), 2))},
+        "pm1": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
+        "pm25": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
+        "pm10": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
+        "reduced": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=100, scale=200), 1, 1000), 2))},
+        "nh3": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 1, 300), 2))},
+        "lpg": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=750, scale=1200), 200, 10000), 2))},
+        "benzene": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=300, scale=120), 10, 1000), 2))},
+        "co": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=300, scale=500), 20, 2000), 2))},
+        "co2": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=1500, scale=5000), 400, 10000), 2))},
+        "eco2": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=10000, scale=5000), 400, 60000), 2))},
+        "tvoc": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=10000, scale=5000), 0, 60000), 2))}
     }
 
 def save_car_data_to_json(car_data, filename="car_data.json"):
@@ -136,7 +136,7 @@ def post_car_data_to_mqtt(car_data):
         topic = f"apars_cars"
         route = car["route"]
 
-        for point in route[0:2]:
+        for point in route[0:20]:
             timestamp = datetime.now().isoformat()
             payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], 
                        point["temperature"], point["humidity"], point["pressure"], 

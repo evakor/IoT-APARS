@@ -75,7 +75,8 @@ car_data_subscription_payload = {
             "topic": "apars/car"
         },
         "attrs": ["dateObserved", "location", "temperature",  "humidity",  "pressure", "pm1", 
-                  "pm25",  "pm10",  "lpg",  "benzene",  "co", "oxidizing", "reducing", "nh3", "co2"]
+                  "pm25",  "pm10",  "lpg",  "benzene",  "co", "oxidised", "reduced", "nh3", "co2",
+                  "eco2", "tvoc", "aqi"]
     },
     "expires": "2040-01-01T14:00:00.00Z"
 }
@@ -128,6 +129,6 @@ def subscribe(payload):
 
 
 if __name__=="__main__":
-    subscriptions = [station_data_subscription_payload, patras_station_data_subscription_payload, car_data_subscription_payload]
+    subscriptions = [car_data_subscription_payload] # station_data_subscription_payload, patras_station_data_subscription_payload, 
     for subscription in subscriptions:
         subscribe(subscription)
