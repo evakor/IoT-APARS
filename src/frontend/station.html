@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>APARS</title>
+    <title>APARS - Station</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -12,7 +12,7 @@
     <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
 </head>
 
-<body style="display: flex; flex-direction: column;">
+<body>
 
     <div class="navbar">
         <!-- Menu Icon and APARS Logo -->
@@ -28,12 +28,13 @@
     <!-- Side Menu -->
     <div id="side-menu" class="side-menu">
         <a href="javascript:void(0)" class="close-btn" onclick="closeMenu()">×</a>
-        <a href="#">Home</a>
+        <a href="index.html">Home</a>
         <a href="car.html">Cars</a>
-        <a href="station.html">Stations</a>
+        <a href="#">Stations</a>
     </div>
 
-    <div id="map"></div>
+    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738673438758&to=1738691684867&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo" width="80%" height="600px" style="margin-top: 10px; margin-left: 10%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738673438758&to=1738691684867&timezone=browser&orgId=2&panelId=2&__feature.dashboardSceneSolo" width="60%" height="300px" style="margin-top: 10px; margin-left: 20%; margin-right: 20%; padding: 0%;" frameborder="0"></iframe>
 
     <script>
         // Map Boundaries
@@ -46,13 +47,13 @@
         const centerLon = (EAST + WEST) / 2;
 
         // Initialize the Leaflet map
-        const map = L.map('map').setView([38.246295, 21.735110], 16);
+        //const map = L.map('map').setView([centerLat, centerLon], 15);
+        const map = L.map('map').setView([38.246295, 21.735110], 15);
 
-        // Add Dark Matter tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
         // Define the bounds for the image overlay
@@ -62,21 +63,6 @@
         ];
 
         let currentOverlay = null; // To hold the current image overlay
-
-        // Function to load the last saved image from localStorage on page load
-        function loadSavedImage() {
-            const savedImage = localStorage.getItem("latestImage");
-            if (savedImage) {
-                console.log("Restoring saved image...");
-                currentOverlay = L.imageOverlay(savedImage, imageBounds, {
-                    opacity: 0.5,
-                    interactive: false
-                }).addTo(map);
-            }
-        }
-
-        // Call the function on page load
-        loadSavedImage();
 
         // Connect to MQTT broker
         const client = mqtt.connect('wss://labserver.sense-campus.gr:9002');
@@ -99,9 +85,6 @@
 
             const base64Image = message.toString();
             const imageUrl = `data:image/png;base64,${base64Image}`;
-
-            // Store the image in localStorage
-            localStorage.setItem("latestImage", imageUrl);
 
             // Remove the previous overlay if it exists
             if (currentOverlay) {

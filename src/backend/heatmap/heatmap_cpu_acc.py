@@ -67,25 +67,58 @@ def interpolate_aqi(grid, points, radical_decay):
 
     return interpolated_grid
 
+# def generate_heatmap(grid, values, image_path):
+#     """Generate a heatmap image from the interpolated grid values."""
+#     lat_range, lon_range = grid
+
+#     # Define colors and bounds for AQI levels
+#     color_list = ["rgba(0,0,0,0)", "yellow", "orange", "red", "purple", "maroon"]
+#     color_bounds = [0, 50, 100, 150, 200, 300, 500]
+#     cmap = mcolors.LinearSegmentedColormap.from_list("smooth_colormap", color_list, N=256)
+
+#     # Normalize values for coloring
+#     normalized_values = (values - np.min(values)) / (np.max(values) - np.min(values))
+
+#     # Convert to image using colormap
+#     heatmap = cmap(normalized_values)
+#     image = Image.fromarray((heatmap[:, :, :3] * 255).astype(np.uint8), mode='RGB')
+#     image = image.transpose(Image.FLIP_TOP_BOTTOM)
+#     image.save(image_path)
+#     print(f"Heatmap image saved as '{image_path}'")
+#     return image
+
 def generate_heatmap(grid, values, image_path):
-    """Generate a heatmap image from the interpolated grid values."""
+    """Generate a heatmap image from the interpolated grid values with transparency for low AQI."""
     lat_range, lon_range = grid
 
     # Define colors and bounds for AQI levels
-    color_list = ["green", "yellow", "orange", "red", "purple", "maroon"]
+    color_list = [(0, 0, 0, 0),  # Fully transparent for lowest AQI values
+                  (255, 255, 0, 255),  # Yellow
+                  (255, 165, 0, 255),  # Orange
+                  (255, 0, 0, 255),  # Red
+                  (128, 0, 128, 255),  # Purple
+                  (128, 0, 0, 255)]  # Maroon
+
     color_bounds = [0, 50, 100, 150, 200, 300, 500]
-    cmap = mcolors.LinearSegmentedColormap.from_list("smooth_colormap", color_list, N=256)
-
-    # Normalize values for coloring
+    
+    # Normalize AQI values
     normalized_values = (values - np.min(values)) / (np.max(values) - np.min(values))
+    
+    # Create an RGBA colormap ensuring transparency for the lowest values
+    cmap = mcolors.LinearSegmentedColormap.from_list("smooth_colormap", 
+        [tuple(np.array(c)/255) for c in color_list], N=256)
 
-    # Convert to image using colormap
+    # Convert to heatmap using colormap
     heatmap = cmap(normalized_values)
-    image = Image.fromarray((heatmap[:, :, :3] * 255).astype(np.uint8), mode='RGB')
+
+    # Convert heatmap to an RGBA image (with transparency)
+    image = Image.fromarray((heatmap * 255).astype(np.uint8), mode='RGBA')
     image = image.transpose(Image.FLIP_TOP_BOTTOM)
     image.save(image_path)
-    print(f"Heatmap image saved as '{image_path}'")
+    
+    print(f"Heatmap image saved as '{image_path}' with transparency")
     return image
+
 
 def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max, points):
     """Overlay the heatmap and data points on a Folium map."""
@@ -159,13 +192,13 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
 
     points = latest_patras_station_data + latest_station_data + last_n_car_data
 
-    #points = points[0:50]
+    #points = points[0:100]
 
     print(f"Interpolating {len(points)} points")
 
-    grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
-    interpolated_values = interpolate_aqi(grid, points, radical_decay)
-    heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
+    # grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
+    # interpolated_values = interpolate_aqi(grid, points, radical_decay)
+    # heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
 
 
     heatmap_image = Image.open(image_path)

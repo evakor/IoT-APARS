@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>APARS - Car</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="js/menu.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <!-- Menu Icon and APARS Logo -->
+        <div class="menu-logo">
+            <span class="menu-icon" onclick="openMenu()">☰</span>
+            <div class="logo">APARS</div>
+        </div>
+        
+        <!-- Current Date and Time -->
+        <div id="datetime" class="date-user"></div>
+    </div>
+    
+    <!-- Side Menu -->
+    <div id="side-menu" class="side-menu">
+        <a href="javascript:void(0)" class="close-btn" onclick="closeMenu()">×</a>
+        <a href="index.html">Home</a>
+        <a href="#">Cars</a>
+        <a href="station.html">Stations</a>
+    </div>
+
+    <iframe 
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo" 
+        width="79.3%" height="600px" style="margin-top: 10px; margin-left: 10%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=8&__feature.dashboardSceneSolo"
+        width="39%" height="244" style="margin-left: 10%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=9&__feature.dashboardSceneSolo"
+        width="40%" height="244" style="margin-left: 0%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=4&__feature.dashboardSceneSolo"
+        width="26%" height="244" style="margin-left: 10%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=5&__feature.dashboardSceneSolo"
+        width="27%" height="244" style="margin-left: 0%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=6&__feature.dashboardSceneSolo"
+        width="26%" height="244" style="margin-left: 0%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=2&__feature.dashboardSceneSolo"
+        width="26%" height="244" style="margin-left: 10%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696773119&to=1738697056120&timezone=browser&orgId=2&panelId=11&__feature.dashboardSceneSolo"
+        width="27%" height="244" style="margin-left: 0%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=3&__feature.dashboardSceneSolo"
+        width="26%" height="244" style="margin-left: 0%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=13&__feature.dashboardSceneSolo"
+        width="39%" height="244" style="margin-left: 10%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=12&__feature.dashboardSceneSolo"
+        width="40%" height="244" style="margin-left: 0%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=10&__feature.dashboardSceneSolo"
+        width="39%" height="244" style="margin-left: 10%; margin-right: 0%; padding: 0%;" frameborder="0"></iframe>
+    <iframe
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738696631618&to=1738697197620&timezone=browser&orgId=2&panelId=7&__feature.dashboardSceneSolo"
+        width="40%" height="244" style="margin-left: 0%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+
+    <script>
+        // Map Boundaries
+        const WEST = 21.708846;
+        const EAST = 21.830913;
+        const SOUTH = 38.205683;
+        const NORTH = 38.294508;
+
+        const centerLat = (NORTH + SOUTH) / 2;
+        const centerLon = (EAST + WEST) / 2;
+
+        // Initialize the Leaflet map
+        //const map = L.map('map').setView([centerLat, centerLon], 15);
+        const map = L.map('map').setView([38.246295, 21.735110], 15);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Define the bounds for the image overlay
+        const imageBounds = [
+            [SOUTH, WEST],  // Southwest coordinates
+            [NORTH, EAST]   // Northeast coordinates
+        ];
+
+        let currentOverlay = null; // To hold the current image overlay
+
+        // Connect to MQTT broker
+        const client = mqtt.connect('wss://labserver.sense-campus.gr:9002');
+        const topic = "image";
+
+        client.on('connect', function () {
+            console.log('Connected to MQTT broker');
+
+            client.subscribe(topic, function (err) {
+                if (!err) {
+                    console.log(`Subscribed to topic: ${topic}`);
+                } else {
+                    console.error('Subscription error:', err);
+                }
+            });
+        });
+
+        client.on('message', function (topic, message) {
+            console.log(`Received image on topic ${topic}`);
+
+            const base64Image = message.toString();
+            const imageUrl = `data:image/png;base64,${base64Image}`;
+
+            // Remove the previous overlay if it exists
+            if (currentOverlay) {
+                map.removeLayer(currentOverlay);
+            }
+
+            // Add the new image overlay
+            currentOverlay = L.imageOverlay(imageUrl, imageBounds, {
+                opacity: 0.5,
+                interactive: false
+            }).addTo(map);
+        });
+
+        client.on('error', function (err) {
+            console.error('Connection error:', err);
+        });
+
+        client.on('close', function () {
+            console.warn('Connection closed. Reconnecting...');
+            setTimeout(() => client.reconnect(), 3000);
+        });
+    </script>
+
+</body>
+
+</html>
