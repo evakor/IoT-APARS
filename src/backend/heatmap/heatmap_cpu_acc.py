@@ -1,4 +1,5 @@
 import json
+import ssl
 import numpy as np
 import folium
 from scipy.spatial import distance
@@ -16,7 +17,7 @@ load_dotenv()
 
 EARTH_RADIUS = 6371000  # In meters
 BROKER = os.getenv('MQTT_ADDRESS')
-PORT = int(os.getenv('MQTT_PORT'))
+PORT = 9002
 TOPIC = "image"
 
 def meters_to_degrees(meters, lat):
@@ -81,6 +82,7 @@ def generate_heatmap(grid, values, image_path):
     # Convert to image using colormap
     heatmap = cmap(normalized_values)
     image = Image.fromarray((heatmap[:, :, :3] * 255).astype(np.uint8), mode='RGB')
+    image = image.transpose(Image.FLIP_TOP_BOTTOM)
     image.save(image_path)
     print(f"Heatmap image saved as '{image_path}'")
     return image
@@ -102,16 +104,45 @@ def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max, points):
 
     return folium_map
 
-def publish(image_path):
-    with open(image_path, "rb") as image_file:
-        image_data = base64.b64encode(image_file.read()).decode("utf-8")
+def publish(image_path: str) -> None:
+    client = mqtt.Client(transport="websockets")
+    client.tls_set()  # Use system's CA certificates
+    
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected to MQTT broker")
+        else:
+            print(f"Connection failed with code {rc}")
+    
+    def on_publish(client, userdata, mid):
+        print(f"Message {mid} published successfully.")
+    
+    client.on_connect = on_connect
+    client.on_publish = on_publish
+    
+    try:
+        client.connect(BROKER, PORT, 60)
+        client.loop_start()
+        
+        with open(image_path, "rb") as image_file:
+            message = base64.b64encode(image_file.read()).decode("utf-8")
+        
+        result = client.publish(TOPIC, message)
+        result.wait_for_publish()
+        
+        print("Image sent successfully.")
+        
+    except ssl.SSLError as e:
+        print(f"SSL Error: {e}")
+    
+    except Exception as e:
+        print(f"Error: {e}")
+    
+    finally:
+        client.loop_stop()
+        client.disconnect()
+        print("Disconnected from MQTT broker.")
 
-    # Publish the image
-    client = mqtt.Client()
-    client.connect(BROKER, PORT, 60)
-    client.publish(TOPIC, image_data)
-    print("Image sent successfully!")
-    client.disconnect()
 
 def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
     image_path = "heatmap.png"
@@ -127,6 +158,8 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     last_n_car_data = fetcher.fetch_last_n_car_data(200)
 
     points = latest_patras_station_data + latest_station_data + last_n_car_data
+
+    #points = points[0:50]
 
     print(f"Interpolating {len(points)} points")
 
@@ -147,10 +180,10 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
 if __name__ == "__main__":
     main(
         json_file='car_data.json',
-        lat_min=38.205683,
-        lat_max=38.294508,
-        lon_min=21.688356,
-        lon_max=21.830913,
+        lat_min=float(os.getenv('SOUTH')),
+        lat_max=float(os.getenv('NORTH')),
+        lon_min=float(os.getenv('WEST')),
+        lon_max=float(os.getenv('EAST')),
         accuracy_m=5,
         radical_decay=15
     )
