@@ -1,74 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APARS Website</title>
-    <style>
-        /* Basic styles for the page */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background-color: #f4f4f4;
-        }
-
-        /* Navigation bar styles */
-        nav {
-            background-color: #333;
-            padding: 10px;
-            text-align: left;
-        }
-
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 18px;
-        }
-
-        nav a:hover {
-            color: #ff9900;
-        }
-
-        /* Content area styles */
-        .content {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 80vh;
-            font-size: 3em;
-            color: #333;
-        }
-
-        /* Footer styles */
-        footer {
-            background-color: #333;
-            color: white;
-            text-align: center;
-            padding: 10px;
-        }
-    </style>
+    <meta charset="utf-8">
+    <title>APARS</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="js/menu.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
 </head>
-<body>
-    <nav>
-        <a href="#">Home</a>
-        <a href="routes_map.html">Routes</a>
-        <a href="IoT.drawio.svg">Architecture</a>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="sensor_wiring.jpg">Wiring</a>
-    </nav>
 
-    <div class="content">
-        APARS
+<body style="display: flex; flex-direction: column;">
+
+    <div class="navbar">
+        <!-- Menu Icon and APARS Logo -->
+        <div class="menu-logo">
+            <span class="menu-icon" onclick="openMenu()">☰</span>
+            <div class="logo">APARS</div>
+        </div>
+        
+        <!-- Current Date and Time -->
+        <div id="datetime" class="date-user"></div>
+    </div>
+    
+    <!-- Side Menu -->
+    <div id="side-menu" class="side-menu">
+        <a href="javascript:void(0)" class="close-btn" onclick="closeMenu()">×</a>
+        <a href="#">Home</a>
+        <a href="car.html">Cars</a>
+        <a href="station.html">Stations</a>
+        <a href="about.html">About</a>
     </div>
 
-    <footer>
-        &copy; 2024 APARS Project
-    </footer>
+    <div id="map"></div>
+
+    <script>
+        // Map Boundaries
+        const WEST = 21.708846;
+        const EAST = 21.830913;
+        const SOUTH = 38.205683;
+        const NORTH = 38.294508;
+
+        const centerLat = (NORTH + SOUTH) / 2;
+        const centerLon = (EAST + WEST) / 2;
+
+        // Initialize the Leaflet map
+        const map = L.map('map').setView([38.246295, 21.735110], 16);
+
+        // Add Dark Matter tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Define the bounds for the image overlay
+        const imageBounds = [
+            [SOUTH, WEST],  // Southwest coordinates
+            [NORTH, EAST]   // Northeast coordinates
+        ];
+
+        let currentOverlay = null; // To hold the current image overlay
+
+        // Function to load the last saved image from localStorage on page load
+        function loadSavedImage() {
+            const savedImage = localStorage.getItem("latestImage");
+            if (savedImage) {
+                console.log("Restoring saved image...");
+                currentOverlay = L.imageOverlay(savedImage, imageBounds, {
+                    opacity: 0.5,
+                    interactive: false
+                }).addTo(map);
+            }
+        }
+
+        // Call the function on page load
+        loadSavedImage();
+
+        // Connect to MQTT broker
+        const client = mqtt.connect('wss://labserver.sense-campus.gr:9002');
+        const topic = "image";
+
+        client.on('connect', function () {
+            console.log('Connected to MQTT broker');
+
+            client.subscribe(topic, function (err) {
+                if (!err) {
+                    console.log(`Subscribed to topic: ${topic}`);
+                } else {
+                    console.error('Subscription error:', err);
+                }
+            });
+        });
+
+        client.on('message', function (topic, message) {
+            console.log(`Received image on topic ${topic}`);
+
+            const base64Image = message.toString();
+            const imageUrl = `data:image/png;base64,${base64Image}`;
+
+            // Store the image in localStorage
+            localStorage.setItem("latestImage", imageUrl);
+
+            // Remove the previous overlay if it exists
+            if (currentOverlay) {
+                map.removeLayer(currentOverlay);
+            }
+
+            // Add the new image overlay
+            currentOverlay = L.imageOverlay(imageUrl, imageBounds, {
+                opacity: 0.5,
+                interactive: false
+            }).addTo(map);
+        });
+
+        client.on('error', function (err) {
+            console.error('Connection error:', err);
+        });
+
+        client.on('close', function () {
+            console.warn('Connection closed. Reconnecting...');
+            setTimeout(() => client.reconnect(), 3000);
+        });
+    </script>
+
 </body>
+
 </html>
