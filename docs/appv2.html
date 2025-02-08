@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>APARS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #map { height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map').setView([38.246295, 21.735110], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const imageBounds = [
+            [38.205683, 21.708846],  // Southwest
+            [38.294508, 21.830913]   // Northeast
+        ];
+        let currentOverlay = null;
+
+        // Check WebViewString periodically
+        setInterval(() => {
+            if (window.AppInventor) {
+                const base64Image = window.AppInventor.getWebViewString();
+                if (base64Image && base64Image.startsWith("data:image/png;base64,")) {
+                    // Remove the previous overlay if it exists
+                    if (currentOverlay) {
+                        map.removeLayer(currentOverlay);
+                    }
+                    // Add the new image overlay
+                    currentOverlay = L.imageOverlay(base64Image, imageBounds, {
+                        opacity: 0.5,
+                        interactive: false
+                    }).addTo(map);
+                }
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
