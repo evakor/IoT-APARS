@@ -10,6 +10,37 @@
     <script src="js/menu.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
+    <script>
+        window.onload = function() {
+            const replaceTimestamp = localStorage.getItem('replaceTimestamp') === 'true'; // Get the toggle state from local storage
+            document.getElementById('toggle-status').textContent = replaceTimestamp ? "Enabled" : "Disabled";
+
+            if (replaceTimestamp) {
+                updateIframesWithTimestamp();
+            }
+        }
+
+        function updateIframesWithTimestamp() {
+            const iframes = document.querySelectorAll('iframe');
+            const currentTimestamp = Date.now();
+
+            iframes.forEach(iframe => {
+                let src = iframe.getAttribute('src');
+                if (src.includes('from=') && src.includes('to=')) {
+                    src = src.replace(/from=\d+/, `from=${currentTimestamp - 60000}`); // 1 minute before current time
+                    src = src.replace(/to=\d+/, `to=${currentTimestamp}`);
+                    iframe.setAttribute('src', src);
+                }
+            });
+        }
+
+        function toggleTimestampReplacement() {
+            const currentStatus = localStorage.getItem('replaceTimestamp') === 'true';
+            const newStatus = !currentStatus;
+            localStorage.setItem('replaceTimestamp', newStatus); // Store the new status in local storage
+            location.reload(); // Reload the page to apply the change
+        }
+    </script>
 </head>
 
 <body>
@@ -34,9 +65,13 @@
         <a href="about.html">About</a>
     </div>
 
-    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738673438758&to=1738691684867&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo" width="80%" height="600px" style="margin-top: 10px; margin-left: 10%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
-    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738673438758&to=1738691684867&timezone=browser&orgId=2&panelId=2&__feature.dashboardSceneSolo" width="60%" height="300px" style="margin-top: 10px; margin-left: 20%; margin-right: 20%; padding: 0%;" frameborder="0"></iframe>
+    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738986230693&to=1739007830693&timezone=browser&refresh=5m&orgId=2&panelId=1&__feature.dashboardSceneSolo" width="80%" height="600px" style="margin-top: 10px; margin-left: 10%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
+    <iframe src="https://labserver.sense-campus.gr:8087/d-solo/eea3q6iccswlca/station-dashboards?from=1738985275959&to=1739006875960&timezone=browser&refresh=5m&orgId=2&panelId=2&__feature.dashboardSceneSolo" width="60%" height="300px" style="margin-top: 10px; margin-left: 20%; margin-right: 20%; padding: 0%;" frameborder="0"></iframe>
 
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="toggleTimestampReplacement()" style="padding: 10px 20px; font-size: 16px;">Toggle Demo/Real</button>
+        <p>View current data is currently: <span id="toggle-status">Enabled</span></p>
+    </div>
 </body>
 
 </html>

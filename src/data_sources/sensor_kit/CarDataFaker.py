@@ -28,6 +28,7 @@ def generate_route(start, end, osrm_server="http://router.project-osrm.org"):
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception(f"OSRM API error: {response.content}")
+    print(f"Route generated succesfully")
     return response.json()
 
 def calculate_area_size(east, west, north, south):
@@ -60,7 +61,7 @@ def generate_pollution_profile():
         "temperature": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=20, scale=2), 15, 25), 2))},
         "humidity": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=20, scale=20), 0, 100), 2))},
         "pressure": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=999, scale=0.1), 0, 1001), 2))},
-        "oxidised": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=1, scale=5), 0.05, 10), 2))},
+        "oxidised": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=4, scale=2), 0.05, 10), 2))},
         "pm1": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
         "pm25": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
         "pm10": {"type": "Float", "value": abs(round(np.clip(np.random.normal(loc=50, scale=100), 0, 1000), 2))},
@@ -86,7 +87,7 @@ def generate_routes_with_cars(east, west, north, south, time):
 
     area_size = calculate_area_size(east, west, north, south)
     #n_routes = calculate_route_count(area_size, traffic_level)
-    n_routes = 3
+    n_routes = 7
     print(f"Generating {n_routes} routes based on traffic level and area size.")
 
     car_data = []
@@ -96,7 +97,7 @@ def generate_routes_with_cars(east, west, north, south, time):
             start = generate_random_coordinates(east, west, north, south)
             end = generate_random_coordinates(east, west, north, south)
             distance = calculate_distance(start, end)
-            if 5 <= distance <= 20:
+            if 1 <= distance <= 3:
                 break
 
         route = generate_route(start, end)
@@ -136,6 +137,14 @@ def post_car_data_to_mqtt(car_data):
         topic = f"apars_cars"
         route = car["route"]
 
+        n = 2
+
+        print(f"Car {car_id} has {len(route)} points")
+
+        if len(route) > 100:
+            print(f"Car {car_id} from {len(route)} to {len(route[n-1::n])}")
+            route = route[n-1::n]
+
         for point in route:
             timestamp = datetime.now().isoformat()
             payload = [f"car_{car_id}", timestamp, point["lat"], point["lon"], 
@@ -160,20 +169,20 @@ def post_car_data_to_mqtt(car_data):
 
 if __name__ == "__main__":
     faker_input = {
-        "east": float(os.getenv('EAST')),
+        "east": 21.768721, #float(os.getenv('EAST')),
         "west": float(os.getenv('WEST')),
         "north": float(os.getenv('NORTH')),
         "south": float(os.getenv('SOUTH')),
         "time": "08:00"
     }
 
-    generate_routes_with_cars(
-        faker_input["east"],
-        faker_input["west"],
-        faker_input["north"],
-        faker_input["south"],
-        faker_input["time"]
-    )
+    # generate_routes_with_cars(
+    #     faker_input["east"],
+    #     faker_input["west"],
+    #     faker_input["north"],
+    #     faker_input["south"],
+    #     faker_input["time"]
+    # )
 
     car_data = load_car_data("car_data.json")
     post_car_data_to_mqtt(car_data)

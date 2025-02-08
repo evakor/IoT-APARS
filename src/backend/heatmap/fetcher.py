@@ -73,7 +73,7 @@ if __name__ == '__main__':
     print(latest_patras_station_data, "\n\n")
     latest_station_data = fetcher.fetch_latest_station_data()
     print(latest_station_data, "\n\n")
-    last_n_car_data = fetcher.fetch_last_n_car_data(20)  # Replace 5 with the desired number of points per car
+    last_n_car_data = fetcher.fetch_last_n_car_data(50)
     print(last_n_car_data, "\n\n")
 
     all_data = latest_station_data + last_n_car_data

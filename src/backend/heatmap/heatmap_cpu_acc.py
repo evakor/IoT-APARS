@@ -187,10 +187,10 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     
     fetcher = InfluxDataFetcher()
     latest_patras_station_data = fetcher.fetch_latest_patras_station_data()
-    latest_station_data = fetcher.fetch_latest_station_data()
-    last_n_car_data = fetcher.fetch_last_n_car_data(200)
+    # latest_station_data = fetcher.fetch_latest_station_data()
+    # last_n_car_data = fetcher.fetch_last_n_car_data(100)
 
-    points = latest_patras_station_data + latest_station_data + last_n_car_data
+    points = latest_patras_station_data #+ latest_station_data + last_n_car_data
 
     #points = points[0:100]
 
@@ -204,19 +204,21 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     heatmap_image = Image.open(image_path)
     publish(image_path)
 
-    folium_map = overlay_heatmap_on_map(heatmap_image, lat_min, lat_max, lon_min, lon_max, points)
-    folium_map.save('aqi_heatmap.html')
+    # folium_map = overlay_heatmap_on_map(heatmap_image, lat_min, lat_max, lon_min, lon_max, points)
+    # folium_map.save('aqi_heatmap.html')
 
     elapsed_time = time.time() - start_time
-    print(f"Heatmap with points saved as 'aqi_heatmap.html' in {elapsed_time:.2f} seconds")
+    print(f"Heatmap with {len(points)} points published in {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
-    main(
-        json_file='car_data.json',
-        lat_min=float(os.getenv('SOUTH')),
-        lat_max=float(os.getenv('NORTH')),
-        lon_min=float(os.getenv('WEST')),
-        lon_max=float(os.getenv('EAST')),
-        accuracy_m=5,
-        radical_decay=15
-    )
+    while True:
+        main(
+            json_file='car_data.json',
+            lat_min=float(os.getenv('SOUTH')),
+            lat_max=float(os.getenv('NORTH')),
+            lon_min=float(os.getenv('WEST')),
+            lon_max=float(os.getenv('EAST')),
+            accuracy_m=5,
+            radical_decay=20
+        )
+        time.sleep(3*60)
