@@ -41,7 +41,7 @@ class InfluxDataFetcher:
     def fetch_last_n_car_data(self, n):
         query = f'''
         from(bucket: "APARS")
-        |> range(start: 0)
+        |> range(start: -1d)
         |> filter(fn: (r) => r["_measurement"] == "car_metrics")
         |> filter(fn: (r) => r["_field"] == "aqi" or r["_field"] == "latitude" or r["_field"] == "longitude")
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")

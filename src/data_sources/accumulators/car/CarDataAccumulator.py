@@ -5,6 +5,7 @@ import logging.config
 import json
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -75,7 +76,7 @@ class CarMQTTListener:
         return {
             "id": payload[0],
             "type": "CarAirQualityObserved",
-            "dateObserved": {"type": "DateTime", "value": payload[1]},
+            "dateObserved": {"type": "DateTime", "value": datetime.now().isoformat()}, #payload[1]
             "temperature": {"type": "Float", "value": payload[4]},
             "humidity": {"type": "Float", "value": payload[5]},
             "pressure": {"type": "Float", "value": payload[6]},

@@ -130,7 +130,7 @@ def overlay_heatmap_on_map(image, lat_min, lat_max, lon_min, lon_max, points):
     img_overlay = folium.raster_layers.ImageOverlay(
         image=np.array(image),
         bounds=[[lat_min, lon_min], [lat_max, lon_max]],
-        opacity=0.6,
+        opacity=0.8,
         interactive=True,
     )
     img_overlay.add_to(folium_map)
@@ -187,18 +187,18 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     
     fetcher = InfluxDataFetcher()
     latest_patras_station_data = fetcher.fetch_latest_patras_station_data()
-    # latest_station_data = fetcher.fetch_latest_station_data()
-    # last_n_car_data = fetcher.fetch_last_n_car_data(100)
+    latest_station_data = fetcher.fetch_latest_station_data()
+    last_n_car_data = fetcher.fetch_last_n_car_data(200)
 
-    points = latest_patras_station_data #+ latest_station_data + last_n_car_data
+    points = latest_patras_station_data + latest_station_data + last_n_car_data
 
     #points = points[0:100]
 
     print(f"Interpolating {len(points)} points")
 
-    # grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
-    # interpolated_values = interpolate_aqi(grid, points, radical_decay)
-    # heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
+    grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
+    interpolated_values = interpolate_aqi(grid, points, radical_decay)
+    heatmap_image = generate_heatmap(grid, interpolated_values, image_path)
 
 
     heatmap_image = Image.open(image_path)
@@ -219,6 +219,6 @@ if __name__ == "__main__":
             lon_min=float(os.getenv('WEST')),
             lon_max=float(os.getenv('EAST')),
             accuracy_m=5,
-            radical_decay=20
+            radical_decay=60
         )
         time.sleep(3*60)
