@@ -1,5 +1,4 @@
 import os
-import json
 import requests
 import logging
 import logging.config
@@ -25,7 +24,7 @@ class StationDataCollector:
         else:
             logging.basicConfig(level=logging.INFO)
 
-        self.logger = logging.getLogger('STATION_DATA')
+        self.logger = logging.getLogger('STATION-ACCUMULATOR')
 
     def load_data(self):
         try:
@@ -45,11 +44,11 @@ class StationDataCollector:
             response = requests.patch(url, headers=headers, json={k: v for k, v in payload.items() if k not in ["id", "type"]})
 
             if response.status_code == 204:
-                self.logger.info(f"Data updated successfully! Station ID: {entity_id}")
+                print(f"STATION-ACCUMULATOR - Data updated successfully! Station ID: {entity_id}")
             elif response.status_code == 404:
                 response = requests.post(self.orion_url, headers=headers, json=payload)
                 if response.status_code == 201:
-                    self.logger.info(f"Data created successfully! Station ID: {entity_id}")
+                    print(f"STATION-ACCUMULATOR - Data created successfully! Station ID: {entity_id}")
                 else:
                     self.logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
             else:

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+    container_name: apars
+    networks:
+      - apars_network
+    restart: always
+
+networks:
+  apars_network:
+    driver: bridge
+

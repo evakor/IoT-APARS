@@ -1,0 +1,9 @@
+paho-mqtt==1.6.1
+influxdb-client==1.36.0
+numpy==1.21.4
+pytz==2021.3
+Pillow==8.4.0
+folium==0.12.1
+scipy==1.7.3
+python-dotenv==0.19.2
+matplotlib

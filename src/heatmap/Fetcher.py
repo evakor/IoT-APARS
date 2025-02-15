@@ -1,5 +1,7 @@
 import os
 from influxdb_client import InfluxDBClient
+import logging
+import logging.config
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,6 +11,16 @@ class InfluxDataFetcher:
         self.client = InfluxDBClient(url=os.getenv("INFLUX_URL"), token=os.getenv('GRAFANA_READ_AND_WRITE'), org='students')
         self.query_api = self.client.query_api()
         self.bucket = 'APARS'
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_config_path = os.path.join(base_dir, 'logging.conf')
+
+        if os.path.exists(log_config_path):
+            logging.config.fileConfig(log_config_path)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
+        self.logger = logging.getLogger("HEATMAP")
 
     def fetch_latest_patras_station_data(self):
         query = f'''
@@ -21,6 +33,7 @@ class InfluxDataFetcher:
         |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value") 
         |> keep(columns: ["id", "_time", "aqi", "latitude", "longitude"])  // Ensure id is included
         '''
+        print("HEATMAP - Fetching data from patras_station_aqi")
         result = self.query_api.query(org='students', query=query)
         return self.format_results(result)
 
@@ -35,6 +48,7 @@ class InfluxDataFetcher:
         |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value") 
         |> keep(columns: ["id", "_time", "aqi", "latitude", "longitude"])  // Ensure id is included
         '''
+        print("HEATMAP - Fetching data from station_aqi")
         result = self.query_api.query(org='students', query=query)
         return self.format_results(result)
 
@@ -47,8 +61,8 @@ class InfluxDataFetcher:
         |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         |> limit(n: {n})
         '''
+        print("HEATMAP - Fetching data from car_metrics")
         result = self.query_api.query(query=query)
-        print(result)
         return self.format_results(result)
 
     def format_results(self, tables):
@@ -62,7 +76,7 @@ class InfluxDataFetcher:
                         "aqi": int(record.values.get("aqi")),
                     })
                 except Exception as e:
-                    print("Could not process point")
+                    self.logger.warning("Could not process point")
 
         return data
 

@@ -1,7 +1,7 @@
 import numpy as np
-from ProgressBar import ProgressBar
-import netCDF4 as nc
-from MathFunctions import Calculations, Validations
+from .ProgressBar import ProgressBar
+# import netCDF4 as nc
+from .MathFunctions import Calculations, Validations
 from datetime import datetime
 
 class Converters:
@@ -140,52 +140,52 @@ class Converters:
         return lats, lons, grid
 
 
-    def grid_to_nc(self, file_name: str, lats: np.arange, lons: np.arange, grid: np.full) -> None:
-        with nc.Dataset(file_name, "w", format="NETCDF4") as dataset:
-            # Create dimensions
-            lat_dim = dataset.createDimension("lat", len(lats))
-            lon_dim = dataset.createDimension("lon", len(lons))
+    # def grid_to_nc(self, file_name: str, lats: np.arange, lons: np.arange, grid: np.full) -> None:
+    #     with nc.Dataset(file_name, "w", format="NETCDF4") as dataset:
+    #         # Create dimensions
+    #         lat_dim = dataset.createDimension("lat", len(lats))
+    #         lon_dim = dataset.createDimension("lon", len(lons))
 
-            # Create variables
-            latitudes = dataset.createVariable("lat", "f4", ("lat",))
-            longitudes = dataset.createVariable("lon", "f4", ("lon",))
-            aqi_values = dataset.createVariable("aqi", "f4", ("lat", "lon"))
+    #         # Create variables
+    #         latitudes = dataset.createVariable("lat", "f4", ("lat",))
+    #         longitudes = dataset.createVariable("lon", "f4", ("lon",))
+    #         aqi_values = dataset.createVariable("aqi", "f4", ("lat", "lon"))
 
-            # Assign data to variables
-            latitudes[:] = lats
-            longitudes[:] = lons
-            aqi_values[:, :] = grid
+    #         # Assign data to variables
+    #         latitudes[:] = lats
+    #         longitudes[:] = lons
+    #         aqi_values[:, :] = grid
 
-            # Add attributes
-            dataset.description = "AQI Heatmap"
-            latitudes.units = "degrees_north"
-            longitudes.units = "degrees_east"
-            aqi_values.units = "AQI"
+    #         # Add attributes
+    #         dataset.description = "AQI Heatmap"
+    #         latitudes.units = "degrees_north"
+    #         longitudes.units = "degrees_east"
+    #         aqi_values.units = "AQI"
     
-    def grid_to_sdm(self, name: str, lats: np.arange, lons: np.arange, grid: np.full) -> list:
-        smart_data_models = []
-        current_time = datetime.now().isoformat()
+    # def grid_to_sdm(self, name: str, lats: np.arange, lons: np.arange, grid: np.full) -> list:
+    #     smart_data_models = []
+    #     current_time = datetime.now().isoformat()
 
-        for i, lat in enumerate(lats):
-            for j, lon in enumerate(lons):
-                smart_data_models.append({
-                    "id": f"{name}_point_{i}_{j}",
-                    "type": "GridAirQualityObserved",
-                    "dateObserved": {
-                        "type": "DateTime",
-                        "value": current_time
-                    },
-                    "aqi": {
-                        "type": "Float",
-                        "value": grid[i, j]
-                    },
-                    "location": {
-                        "type": "geo:json",
-                        "value": {
-                            "type": "Point",
-                            "coordinates": [lat, lon]
-                        }
-                    }
-                })
+    #     for i, lat in enumerate(lats):
+    #         for j, lon in enumerate(lons):
+    #             smart_data_models.append({
+    #                 "id": f"{name}_point_{i}_{j}",
+    #                 "type": "GridAirQualityObserved",
+    #                 "dateObserved": {
+    #                     "type": "DateTime",
+    #                     "value": current_time
+    #                 },
+    #                 "aqi": {
+    #                     "type": "Float",
+    #                     "value": grid[i, j]
+    #                 },
+    #                 "location": {
+    #                     "type": "geo:json",
+    #                     "value": {
+    #                         "type": "Point",
+    #                         "coordinates": [lat, lon]
+    #                     }
+    #                 }
+    #             })
 
-        return smart_data_models
+    #     return smart_data_models

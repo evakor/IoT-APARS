@@ -24,7 +24,7 @@ class CarMQTTListener:
         else:
             logging.basicConfig(level=logging.INFO)
 
-        self.logger = logging.getLogger("MQTT-To-Orion")
+        self.logger = logging.getLogger("CAR-ACCUMULATOR")
 
         self.client = mqtt.Client()
         self.client.username_pw_set("user", "password")
@@ -33,18 +33,18 @@ class CarMQTTListener:
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            self.logger.info("Connected to MQTT broker successfully!")
+            print("CAR-ACCUMULATOR - Connected to MQTT broker successfully!")
             for topic in self.topics:
                 client.subscribe(topic)
-                self.logger.info(f"Subscribed to topic: {topic}")
+                print(f"CAR-ACCUMULATOR - Subscribed to topic: {topic}")
         else:
             self.logger.error(f"Failed to connect to MQTT broker, return code {rc}")
 
     def on_message(self, client, userdata, msg):
-        self.logger.info(f"Message received from topic {msg.topic}")
+        print(f"CAR-ACCUMULATOR - Message received from topic {msg.topic}")
         try:
             payload = msg.payload.decode("utf-8")
-            self.logger.info(f"Payload: {payload}")
+            print(f"CAR-ACCUMULATOR - Payload: {payload}")
             self.send_data_to_orion(payload)
         except Exception as e:
             self.logger.error(f"Error processing message: {str(e)}")
@@ -59,11 +59,11 @@ class CarMQTTListener:
             response = requests.patch(url, headers=headers, json={k: v for k, v in data.items() if k not in ["id", "type"]})
 
             if response.status_code == 204:
-                self.logger.info(f"Data updated successfully! CAR ID: {entity_id}")
+                print(f"CAR-ACCUMULATOR - Data updated successfully! CAR ID: {entity_id}")
             elif response.status_code == 404:
                 response = requests.post(self.orion_url, headers=headers, json=data)
                 if response.status_code == 201:
-                    self.logger.info(f"Data created successfully! CAR ID: {entity_id}")
+                    print(f"CAR-ACCUMULATOR - Data created successfully! CAR ID: {entity_id}")
                 else:
                     self.logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
             else:

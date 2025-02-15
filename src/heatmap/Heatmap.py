@@ -1,4 +1,3 @@
-import json
 import ssl
 import numpy as np
 import folium
@@ -8,9 +7,11 @@ import matplotlib.colors as mcolors
 from multiprocessing import Pool, cpu_count
 import time
 import paho.mqtt.client as mqtt
-from fetcher import InfluxDataFetcher
+from .Fetcher import InfluxDataFetcher
 import base64
 import os
+import logging
+import logging.config
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,6 +20,16 @@ EARTH_RADIUS = 6371000  # In meters
 BROKER = os.getenv('MQTT_ADDRESS')
 PORT = 9002
 TOPIC = "image"
+
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+log_config_path = os.path.join(base_dir, 'logging.conf')
+
+if os.path.exists(log_config_path):
+    logging.config.fileConfig(log_config_path)
+else:
+    logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger("HEATMAP")
 
 def meters_to_degrees(meters, lat):
     """Convert meters to degrees for latitude and longitude."""
@@ -84,7 +95,7 @@ def interpolate_aqi(grid, points, radical_decay):
 #     image = Image.fromarray((heatmap[:, :, :3] * 255).astype(np.uint8), mode='RGB')
 #     image = image.transpose(Image.FLIP_TOP_BOTTOM)
 #     image.save(image_path)
-#     print(f"Heatmap image saved as '{image_path}'")
+#     print(f"HEATMAP - Heatmap image saved as '{image_path}'")
 #     return image
 
 def generate_heatmap(grid, values, image_path):
@@ -116,7 +127,7 @@ def generate_heatmap(grid, values, image_path):
     image = image.transpose(Image.FLIP_TOP_BOTTOM)
     image.save(image_path)
     
-    print(f"Heatmap image saved as '{image_path}' with transparency")
+    print(f"HEATMAP - Heatmap image saved as '{image_path}' with transparency")
     return image
 
 
@@ -143,12 +154,12 @@ def publish(image_path: str) -> None:
     
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
-            print("Connected to MQTT broker")
+            print("HEATMAP - Connected to MQTT broker")
         else:
-            print(f"Connection failed with code {rc}")
+            logger.error(f"Connection failed with code {rc}")
     
     def on_publish(client, userdata, mid):
-        print(f"Message {mid} published successfully.")
+        print(f"HEATMAP - Message {mid} published successfully.")
     
     client.on_connect = on_connect
     client.on_publish = on_publish
@@ -163,21 +174,21 @@ def publish(image_path: str) -> None:
         result = client.publish(TOPIC, message)
         result.wait_for_publish()
         
-        print("Image sent successfully.")
+        print(f"HEATMAP - Image sent successfully.")
         
     except ssl.SSLError as e:
-        print(f"SSL Error: {e}")
+        logger.error(f"SSL Error: {e}")
     
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
     
     finally:
         client.loop_stop()
         client.disconnect()
-        print("Disconnected from MQTT broker.")
+        print(f"HEATMAP - Disconnected from MQTT broker.")
 
 
-def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
+def generate_and_publish(lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_decay):
     image_path = "heatmap.png"
 
     start_time = time.time()
@@ -194,7 +205,7 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
 
     #points = points[0:100]
 
-    print(f"Interpolating {len(points)} points")
+    print(f"HEATMAP - Interpolating {len(points)} points")
 
     grid = create_grid(lat_min, lat_max, lon_min, lon_max, accuracy_m)
     interpolated_values = interpolate_aqi(grid, points, radical_decay)
@@ -208,12 +219,11 @@ def main(json_file, lat_min, lat_max, lon_min, lon_max, accuracy_m, radical_deca
     # folium_map.save('aqi_heatmap.html')
 
     elapsed_time = time.time() - start_time
-    print(f"Heatmap with {len(points)} points published in {elapsed_time:.2f} seconds")
+    print(f"HEATMAP - Heatmap with {len(points)} points published in {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
     while True:
-        main(
-            json_file='car_data.json',
+        generate_and_publish(
             lat_min=float(os.getenv('SOUTH')),
             lat_max=float(os.getenv('NORTH')),
             lon_min=float(os.getenv('WEST')),

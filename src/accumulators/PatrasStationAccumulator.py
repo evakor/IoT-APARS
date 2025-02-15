@@ -24,7 +24,7 @@ class PatrasSensorDataCollector:
         else:
             logging.basicConfig(level=logging.INFO)
 
-        self.logger = logging.getLogger('PATRAS_SENSOR_DATA')
+        self.logger = logging.getLogger('PATRAS-STATION-ACCUMULATOR')
 
     def load_data(self, sensor_id):
         try:
@@ -44,11 +44,11 @@ class PatrasSensorDataCollector:
             response = requests.patch(url, headers=headers, json={k: v for k, v in payload.items() if k not in ["id", "type"]})
 
             if response.status_code == 204:
-                self.logger.info(f"Data updated successfully! Sensor ID: {entity_id}")
+                print(f"PATRAS-STATION-ACCUMULATOR - Data updated successfully! Sensor ID: {entity_id}")
             elif response.status_code == 404:
                 response = requests.post(self.orion_url, headers=headers, json=payload)
                 if response.status_code == 201:
-                    self.logger.info(f"Data created successfully! Sensor ID: {entity_id}")
+                    print(f"PATRAS-STATION-ACCUMULATOR - Data created successfully! Sensor ID: {entity_id}")
                 else:
                     self.logger.error(f"Failed to create entity: {response.status_code} - {response.text}")
             else:
