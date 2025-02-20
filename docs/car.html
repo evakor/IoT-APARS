@@ -89,7 +89,6 @@
 
     <script>
         window.onload = function() {
-            // Load user preferences
             const theme = localStorage.getItem('theme') || 'light';
             setTheme(theme);
 
@@ -131,8 +130,6 @@
         function setTheme(theme) {
             localStorage.setItem("theme", theme);
             document.body.classList.toggle('dark-mode', theme === 'dark');
-
-            // Update toggle switch position
             document.getElementById("theme-toggle-checkbox").checked = theme === 'dark';
 
             // Update all iframes to use the correct theme
@@ -147,9 +144,24 @@
 
                 iframe.setAttribute("src", src);
             });
+
+            // Update heatmap iframe separately
+            updateHeatmapTheme(theme);
         }
 
-        // Apply stored theme preference on page load
+        function updateHeatmapTheme(theme) {
+            let heatmapIframe = document.getElementById("heatmap-iframe");
+            let heatmapSrc = heatmapIframe.getAttribute("src");
+
+            if (heatmapSrc.includes("theme=")) {
+                heatmapSrc = heatmapSrc.replace(/theme=(dark|light)/, `theme=${theme}`);
+            } else {
+                heatmapSrc = heatmapSrc + `&theme=${theme}`;
+            }
+
+            heatmapIframe.setAttribute("src", heatmapSrc);
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             const savedTheme = localStorage.getItem("theme") || "light";
             setTheme(savedTheme);
@@ -175,19 +187,16 @@
     </div>
 
     <div id="side-menu" class="side-menu">
-        <a href="javascript:void(0)" class="close-btn" onclick="closeMenu()">×</a>
         <a href="index.html">Home</a>
         <a href="#">Cars</a>
         <a href="station.html">Stations</a>
         <a href="about.html">About</a>
     </div>
 
-    <!-- Grafana Dashboards -->
-      <!-- Heatmap Graph -->
-    <iframe 
-        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards??from=1739005576432&to=1739006128809&timezone=browser&refresh=5m&orgId=2&panelId=1&__feature.dashboardSceneSolo" 
+    <!-- Heatmap Graph -->
+    <iframe id="heatmap-iframe" 
+        src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards??from=1739005576432&to=1739006128809&timezone=browser&refresh=5m&orgId=2&panelId=1&__feature.dashboardSceneSolo&theme=light" 
         width="79.3%" height="600px" style="margin-top: 10px; margin-left: 10%; margin-right: 10%; padding: 0%;" frameborder="0"></iframe>
-
     <!-- Other Graphs -->
 
     <iframe src="https://labserver.sense-campus.gr:8087/d-solo/cea3pjwio8ikgb/car-dashboards?from=1738682700000&to=1739640810000&timezone=browser&refresh=5m&orgId=2&panelId=15&__feature.dashboardSceneSolo&theme=light" 
@@ -230,10 +239,10 @@
 
 
 
-    <div style="text-align: center; margin-top: 20px;">
-        <button onclick="toggleTimestampReplacement()" style="padding: 10px 20px; font-size: 16px;">Toggle Demo/Real</button>
-        <p>View current data is currently: <span id="toggle-status">Enabled</span></p>
-    </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="toggleTimestampReplacement()" style="padding: 10px 20px; font-size: 16px;">Toggle Demo/Real</button>
+            <p>View current data is currently: <span id="toggle-status">Enabled</span></p>
+        </div>
 
 </body>
 

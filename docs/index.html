@@ -10,65 +10,163 @@
     <script src="js/menu.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <link href='https://fonts.googleapis.com/css?family=Poppins' rel='stylesheet'>
-</head>
 
-<body style="display: flex; flex-direction: column;">
+    <style>
+        /* Theme Variables */
+        :root {
+            --background-color: #ffffff;
+            --text-color: #000000;
+            --button-bg: #000000;
+            --button-text: #ffffff;
+        }
 
-    <div class="navbar">
-        <!-- Menu Icon and APARS Logo -->
-        <div class="menu-logo">
-            <span class="menu-icon" onclick="openMenu()">☰</span>
-            <div class="logo">APARS</div>
-        </div>
-        
-        <!-- Current Date and Time -->
-        <div id="datetime" class="date-user"></div>
-    </div>
-    
-    <!-- Side Menu -->
-    <div id="side-menu" class="side-menu">
-        <a href="javascript:void(0)" class="close-btn" onclick="closeMenu()">×</a>
-        <a href="#">Home</a>
-        <a href="car.html">Cars</a>
-        <a href="station.html">Stations</a>
-        <a href="about.html">About</a>
-    </div>
+        .dark-mode {
+            --background-color: #1e1e1e;
+            --text-color: #ffffff;
+            --button-bg: #ffffff;
+            --button-text: #000000;
+        }
 
-    <div id="map"></div>
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Full Page Map */
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        /* Theme Toggle Switch */
+        .theme-switch-wrapper {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 25px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 3.5px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+    </style>
 
     <script>
-        // Map Boundaries
-        const WEST = 21.708846;
-        const EAST = 21.830913;
-        const SOUTH = 38.205683;
-        const NORTH = 38.294508;
+        let map;
+        let darkLayer, lightLayer;
+        let currentOverlay = null;
 
-        const centerLat = (NORTH + SOUTH) / 2;
-        const centerLon = (EAST + WEST) / 2;
+        window.onload = function() {
+            const theme = localStorage.getItem("theme") || "light";
+            setTheme(theme);
+            initializeMap(theme);
+        };
 
-        // Initialize the Leaflet map
-        const map = L.map('map').setView([38.246295, 21.735110], 16);
+        function toggleTheme() {
+            const isDarkMode = document.getElementById("theme-toggle-checkbox").checked;
+            const theme = isDarkMode ? "dark" : "light";
+            setTheme(theme);
+            updateMapTheme(theme);
+        }
 
-        // Add Dark Matter tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        function setTheme(theme) {
+            localStorage.setItem("theme", theme);
+            document.body.classList.toggle('dark-mode', theme === 'dark');
+            document.getElementById("theme-toggle-checkbox").checked = theme === 'dark';
+        }
 
-        // Define the bounds for the image overlay
-        const imageBounds = [
-            [SOUTH, WEST],  // Southwest coordinates
-            [NORTH, EAST]   // Northeast coordinates
-        ];
+        function initializeMap(theme) {
+            const WEST = 21.708846;
+            const EAST = 21.830913;
+            const SOUTH = 38.205683;
+            const NORTH = 38.294508;
 
-        let currentOverlay = null; // To hold the current image overlay
+            map = L.map('map').setView([38.246295, 21.735110], 16);
 
-        // Function to load the last saved image from localStorage on page load
+            darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            });
+
+            lightLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 20
+            });
+
+            if (theme === "dark") {
+                darkLayer.addTo(map);
+            } else {
+                lightLayer.addTo(map);
+            }
+
+            loadSavedImage();
+        }
+
+        function updateMapTheme(theme) {
+            if (theme === "dark") {
+                map.removeLayer(lightLayer);
+                darkLayer.addTo(map);
+            } else {
+                map.removeLayer(darkLayer);
+                lightLayer.addTo(map);
+            }
+        }
+
         function loadSavedImage() {
             const savedImage = localStorage.getItem("latestImage");
             if (savedImage) {
-                console.log("Restoring saved image...");
+                const imageBounds = [
+                    [38.205683, 21.708846],
+                    [38.294508, 21.830913]
+                ];
+
                 currentOverlay = L.imageOverlay(savedImage, imageBounds, {
                     opacity: 0.7,
                     interactive: false
@@ -76,55 +174,64 @@
             }
         }
 
-        // Call the function on page load
-        loadSavedImage();
-
-        // Connect to MQTT broker
         const client = mqtt.connect('wss://labserver.sense-campus.gr:9002');
         const topic = "image";
 
         client.on('connect', function () {
-            console.log('Connected to MQTT broker');
-
             client.subscribe(topic, function (err) {
-                if (!err) {
-                    console.log(`Subscribed to topic: ${topic}`);
-                } else {
-                    console.error('Subscription error:', err);
-                }
+                if (!err) console.log(`Subscribed to topic: ${topic}`);
             });
         });
 
         client.on('message', function (topic, message) {
-            console.log(`Received image on topic ${topic}`);
-
             const base64Image = message.toString();
             const imageUrl = `data:image/png;base64,${base64Image}`;
 
-            // Store the image in localStorage
             localStorage.setItem("latestImage", imageUrl);
 
-            // Remove the previous overlay if it exists
             if (currentOverlay) {
                 map.removeLayer(currentOverlay);
             }
 
-            // Add the new image overlay
+            const imageBounds = [
+                [38.205683, 21.708846],
+                [38.294508, 21.830913]
+            ];
+
             currentOverlay = L.imageOverlay(imageUrl, imageBounds, {
                 opacity: 0.5,
                 interactive: false
             }).addTo(map);
         });
 
-        client.on('error', function (err) {
-            console.error('Connection error:', err);
-        });
-
-        client.on('close', function () {
-            console.warn('Connection closed. Reconnecting...');
-            setTimeout(() => client.reconnect(), 3000);
-        });
     </script>
+</head>
+
+<body>
+
+    <div class="theme-switch-wrapper">
+        <label class="theme-switch">
+            <input type="checkbox" id="theme-toggle-checkbox" onclick="toggleTheme()">
+            <span class="slider round"></span>
+        </label>
+    </div>
+
+    <div class="navbar">
+        <div class="menu-logo">
+            <span class="menu-icon" onclick="openMenu()">☰</span>
+            <div class="logo">APARS</div>
+        </div>
+        <div id="datetime" class="date-user"></div>
+    </div>
+
+    <div id="side-menu" class="side-menu">
+        <a href="#">Home</a>
+        <a href="car.html">Cars</a>
+        <a href="station.html">Stations</a>
+        <a href="about.html">About</a>
+    </div>
+
+    <div id="map"></div>
 
 </body>
 
